@@ -1,0 +1,17 @@
+{
+  "name": "@fw/worker",
+  "version": "1.0.0",
+  "description": "Worker lib",
+  "private": true,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"lint": "eslint .",
+		"typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"build": "tsc -p ./tsconfig.build.json"
+	},
+  "dependencies": {
+		"@types/node-cron": "3.0.11",
+		"node-cron": "3.0.3"
+  }
+}

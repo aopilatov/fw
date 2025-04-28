@@ -6,10 +6,12 @@
 **/.env.test
 **/.DS_Store
 **/dist
+**/types.d
 **/node_modules
 **/tmp
 
 **/tsconfig.tsbuildinfo
+**/tsconfig.build.tsbuildinfo
 tsconfig.base.tsbuildinfo
 **/secret.yaml
 

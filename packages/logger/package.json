@@ -1,0 +1,17 @@
+{
+  "name": "@fw/logger",
+  "version": "1.0.0",
+  "description": "Logger lib",
+  "private": true,
+  "main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"build": "tsc -p ./tsconfig.build.json"
+  },
+  "dependencies": {
+		"pino": "9.6.0",
+		"pino-pretty": "13.0.0"
+	}
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@fw/telemetry",
+  "version": "1.0.0",
+  "description": "OpenTelemetry SDK lib",
+  "private": true,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"lint": "eslint .",
+		"typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"build": "tsc -p ./tsconfig.build.json"
+	},
+  "dependencies": {
+		"@opentelemetry/auto-instrumentations-node": "^0.57.1",
+		"@opentelemetry/exporter-metrics-otlp-grpc": "^0.200.0",
+		"@opentelemetry/exporter-trace-otlp-grpc": "^0.200.0",
+		"@opentelemetry/resources": "^2.0.0",
+		"@opentelemetry/sdk-metrics": "^2.0.0",
+		"@opentelemetry/sdk-node": "^0.200.0",
+		"@opentelemetry/sdk-trace-base": "^2.0.0",
+		"@opentelemetry/semantic-conventions": "^1.32.0",
+		"@opentelemetry/instrumentation-http": "^0.200.0",
+		"@opentelemetry/instrumentation-pino": "^0.47.0",
+		"@opentelemetry/instrumentation-pg": "^0.52.0",
+		"@opentelemetry/instrumentation-redis": "^0.47.0"
+	}
+}
