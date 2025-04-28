@@ -1,0 +1,7 @@
+{
+  "name": "fw",
+  "version": "1.0.0",
+  "author": "aopilatov",
+  "license": "ISC",
+  "packageManager": "pnpm@10.9.0"
+}

@@ -1,0 +1,19 @@
+**/.idea
+**/.vscode
+**/.npm
+**/.swc
+**/.env
+**/.env.test
+**/.DS_Store
+**/dist
+**/node_modules
+**/tmp
+
+**/tsconfig.tsbuildinfo
+tsconfig.base.tsbuildinfo
+**/secret.yaml
+
+# Logs
+logs
+*.log
+npm-debug.log*
