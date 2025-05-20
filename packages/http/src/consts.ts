@@ -1,4 +1,4 @@
-export const cert: string = `-----BEGIN CERTIFICATE-----
+export const certExample: string = `-----BEGIN CERTIFICATE-----
 MIID/TCCAuWgAwIBAgIUNH8gqWDJMv0xBxBy0PEKCOk2CEEwDQYJKoZIhvcNAQEL
 BQAwgY0xCzAJBgNVBAYTAkVFMREwDwYDVQQIDAhIYXJqdW1hYTEQMA4GA1UEBwwH
 VGFsbGlubjERMA8GA1UECgwIUm5EIExhYnoxDDAKBgNVBAsMA0RldjESMBAGA1UE
@@ -24,7 +24,7 @@ gXAADQTFmrkYgTW6M02WnDs=
 -----END CERTIFICATE-----
 `;
 
-export const key: string = `-----BEGIN PRIVATE KEY-----
+export const keyExample: string = `-----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCnodSK439LIzee
 kIJVRDmSUBa9ZWi5zsgpnON27VYBtGEUJ3ZDxT/8I9ZZiNtXXsd5AzHsDoaeoika
 8fq/PxT3sOHwTIo/ErO+R2KyqzQNg/5VU5Nazh0pDEjRmcIimUqel2ZYfFdAzETz

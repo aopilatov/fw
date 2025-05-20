@@ -45,7 +45,14 @@ export class Router {
 
 					const answer = (await invoke(controllerClass, endpoint, [req, res])) as EndpointReply;
 					if (answer?.headers) res.headers(answer.headers);
-					if (answer?.cookies) res.header('set-cookie', answer.cookies);
+					if (answer?.cookies) {
+						res.setCookie('token-auth', answer.cookies, {
+							httpOnly: true,
+							secure: true,
+							path: '/',
+							maxAge: 3600,
+						});
+					}
 
 					res.code(answer.statusCode);
 					return res.send(answer.body);

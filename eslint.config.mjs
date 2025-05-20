@@ -70,8 +70,6 @@ export default [
 					distinctGroup: false,
 				},
 			],
-
-			'services/no-service-in-service': 'error',
 		},
 		plugins: {
 			import: importeslint,

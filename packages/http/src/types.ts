@@ -24,13 +24,13 @@ export interface MiddlewareEvent {
 }
 
 export type RouteMethod = 'ALL' | 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
-export type GuardCallback = (req: FastifyRequest) => boolean | Promise<boolean>;
+export type GuardCallback = (req: ServerRequest) => boolean | Promise<boolean>;
 
 export interface EndpointReply<T = unknown> {
 	statusCode: number;
 	body: T;
 	headers?: Record<string, string>;
-	cookies?: string[];
+	cookies?: string;
 }
 
 export interface EndpointMetadata {

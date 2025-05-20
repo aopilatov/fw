@@ -1,8 +1,6 @@
-export interface WorkerRedefined {
-	readonly name: string;
-	readonly isEnabled: boolean;
-	startup?: () => Promise<void>;
-	shutdown?: () => Promise<void>;
+export abstract class WorkerAbstraction {
+	public abstract startup(): void | Promise<void>;
+	public abstract shutdown(): void | Promise<void>;
 }
 
 export type CronTasks = Map<string, CronExpression>;

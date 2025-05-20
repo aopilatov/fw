@@ -1,0 +1,21 @@
+{
+  "name": "@fw/telegram",
+  "version": "1.0.0",
+  "description": "Telegram lib",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"build": "tsc -p ./tsconfig.build.json"
+  },
+  "dependencies": {
+    "big-integer": "^1.6.52",
+    "telegram": "^2.26.22"
+  },
+  "devDependencies": {
+    "@fw/cache": "workspace:^",
+    "@fw/logger": "workspace:^"
+  }
+}

@@ -1,18 +1,16 @@
 import { ClassConstructor } from 'class-transformer';
 
 import { WorkersFactory } from './main';
-import { CronExpression, CronTasks, WorkerRedefined } from './types';
+import { CronExpression, CronTasks } from './types';
 
 export function Worker(name: string, enabled: boolean = false) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return (target: ClassConstructor<any>) => {
-		const workerClass = class extends target implements WorkerRedefined {
-			public readonly name: string = name;
-			public readonly isEnabled: boolean = enabled;
-		};
+		Reflect.defineMetadata('name', name, target);
+		Reflect.defineMetadata('isEnabled', enabled, target);
 
-		WorkersFactory.register(workerClass, name);
-		return workerClass;
+		WorkersFactory.register(target, name);
+		return target;
 	};
 }
 

@@ -1,8 +1,8 @@
 {
-  "name": "@fw/pg",
-  "version": "1.0.0",
-  "description": "PubSub lib",
-  "private": true,
+	"name": "@fw/pg",
+	"version": "1.0.0",
+	"description": "PubSub lib",
+	"private": true,
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
@@ -10,9 +10,13 @@
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"build": "tsc -p ./tsconfig.build.json"
 	},
-  "dependencies": {
-		"@fw/logger": "workspace:^",
-		"@types/pg": "8.6.1",
-		"pg": "8.7.1"
-  }
+	"dependencies": {
+		"@types/pg": "8.11.14",
+		"dbmate": "^2.27.0",
+		"pg": "8.15.6"
+	},
+	"devDependencies": {
+		"@fw/common": "workspace:^",
+		"@fw/logger": "workspace:^"
+	}
 }

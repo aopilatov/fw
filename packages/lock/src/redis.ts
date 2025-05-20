@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { Service, Container } from 'typedi';
 
-import { Redis } from '../../cache';
+import { Redis } from '@fw/cache';
 
 import { PerformLockConfig } from './types';
 

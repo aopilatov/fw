@@ -1,3 +1,5 @@
+import * as process from 'node:process';
+
 import { ClientConfig, PubSub as GcpPubSub, Message } from '@google-cloud/pubsub';
 import { Service } from 'typedi';
 
@@ -6,8 +8,9 @@ import { getLogger } from '@fw/logger';
 import { PubSubError } from './errors';
 import { Config, PubSubSchema, LimitConfig, TopicData } from './types';
 
-@Service()
+@Service({ global: true })
 export class PubSub {
+	private isEmulator: boolean;
 	private client: GcpPubSub;
 	private topics: Partial<Record<keyof PubSubSchema, TopicData>> = {};
 
@@ -16,12 +19,19 @@ export class PubSub {
 
 		const pubSubConf: ClientConfig = {};
 		if (typeof config === 'string') {
+			this.isEmulator = false;
+
 			const credentials = JSON.parse(config);
 			pubSubConf.projectId = credentials.project_id;
 			pubSubConf.credentials = credentials;
 		} else {
+			this.isEmulator = true;
+
 			pubSubConf.projectId = config.projectId;
 			pubSubConf.servicePath = config.host;
+
+			process.env.PUBSUB_PROJECT_ID = 'originals-local';
+			process.env.PUBSUB_EMULATOR_HOST = 'localhost:8085';
 		}
 
 		this.client = new GcpPubSub(pubSubConf);
@@ -35,7 +45,7 @@ export class PubSub {
 		if (!(id in this.topics)) {
 			let topic = this.client.topic(id);
 
-			if (this.client.isEmulator && !(await topic.exists())[0]) {
+			if (this.isEmulator && !(await topic.exists())[0]) {
 				getLogger().warn(`Topic ${id} does not exist. Creating...`);
 				await topic.create();
 				topic = this.client.topic(id);
@@ -53,6 +63,10 @@ export class PubSub {
 		return {
 			publish: async (data: PubSubSchema[T]) => {
 				const dataBuffer = Buffer.from(JSON.stringify(data));
+				if (process.env?.NODE_ENV === 'test') {
+					getLogger().info('PubSub message', data);
+					return;
+				}
 
 				try {
 					await topic.topic.publishMessage({ data: dataBuffer });
@@ -73,7 +87,7 @@ export class PubSub {
 					throw new PubSubError(`Subscription ${name} already exists`);
 				}
 
-				if (this.client.isEmulator && !(await topic.topic.subscription(name).exists())[0]) {
+				if (this.isEmulator && !(await topic.topic.subscription(name).exists())[0]) {
 					getLogger().warn(`Subscription ${name} does not exist. Creating...`, await topic.topic.getMetadata());
 					await topic.topic.subscription(name).create(limitConfig ? { flowControl: limitConfig } : undefined);
 				}

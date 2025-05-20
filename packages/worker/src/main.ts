@@ -1,13 +1,13 @@
 import { ClassConstructor } from 'class-transformer';
-import { invoke } from 'es-toolkit/compat';
+import { get } from 'es-toolkit/compat';
 import cron from 'node-cron';
 
-import { CronTasks, WorkerRedefined } from './types';
+import { CronTasks, WorkerAbstraction } from './types';
 
 export class WorkersFactory {
-	private static readonly workers: Map<string, WorkerRedefined> = new Map();
+	private static readonly workers: Map<string, WorkerAbstraction> = new Map();
 
-	public static register(worker: ClassConstructor<WorkerRedefined>, name: string): void {
+	public static register(worker: ClassConstructor<WorkerAbstraction>, name: string): void {
 		if (WorkersFactory.workers.has(name)) {
 			throw new Error(`Worker "${name}" is already exists`);
 		}
@@ -20,7 +20,8 @@ export class WorkersFactory {
 		for (const name of names) {
 			const worker = WorkersFactory.workers.get(name)!;
 
-			if (worker.isEnabled) {
+			const isEnabled = Reflect.getMetadata('isEnabled', get(worker, 'constructor') as unknown as object) as boolean;
+			if (isEnabled) {
 				if (worker?.startup) {
 					await worker.startup();
 				}
@@ -28,7 +29,7 @@ export class WorkersFactory {
 				const cronTasks: CronTasks = Reflect.getMetadata('cron-tasks', worker.constructor) || new Map();
 				const cronTasksKeys: string[] = Array.from(cronTasks.keys());
 				for (const cronTasksKey of cronTasksKeys) {
-					cron.schedule(cronTasks.get(cronTasksKey)!, invoke(worker, cronTasksKey));
+					cron.schedule(cronTasks.get(cronTasksKey)!, worker[cronTasksKey].bind(worker));
 				}
 			}
 		}

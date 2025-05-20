@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import crypto from 'node:crypto';
 
+import cookie, { FastifyCookieOptions } from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import middie from '@fastify/middie';
@@ -11,12 +12,14 @@ import { set } from 'es-toolkit/compat';
 import { fastify } from 'fastify';
 import fastifyIp from 'fastify-ip';
 import metrics from 'fastify-metrics';
+import { Container } from 'typedi';
 import { UAParser, IResult } from 'ua-parser-js';
 
+import { RequestLike } from '@fw/common';
 import { loggerConfig } from '@fw/logger';
 import { sdk } from '@fw/telemetry';
 
-import { cert, key } from './consts';
+import { certExample, keyExample } from './consts';
 import { applyHooks } from './middleware';
 import { Router } from './router';
 import { ServerInstance, ServerRequest, ServerResponse } from './types';
@@ -24,6 +27,9 @@ import { ServerInstance, ServerRequest, ServerResponse } from './types';
 declare module 'fastify' {
 	interface FastifyRequest {
 		userAgent: IResult;
+		country: string;
+		referer: string | undefined;
+		user?: unknown;
 	}
 }
 
@@ -32,6 +38,7 @@ let serverIsReady: boolean = false;
 export async function createHttpServer(
 	name: string,
 	params?: {
+		useUnsafe?: boolean;
 		origin?: string[];
 		bodyLimit?: number;
 		contentType?: 'json'[];
@@ -40,6 +47,9 @@ export async function createHttpServer(
 		host?: string;
 		port?: number;
 		maxConcurrentRequests?: number;
+		key?: string;
+		cert?: string;
+		secret?: string;
 	},
 ): Promise<ServerInstance> {
 	const server: ServerInstance = fastify({
@@ -52,8 +62,8 @@ export async function createHttpServer(
 		http2: true,
 		https: {
 			allowHTTP1: true,
-			key,
-			cert,
+			key: params?.key || keyExample,
+			cert: params?.cert || certExample,
 		},
 		genReqId: (req) => crypto.randomUUID(),
 	});
@@ -62,6 +72,7 @@ export async function createHttpServer(
 	fastifyOtelInstrumentation.setTracerProvider(sdk['_tracerProvider']);
 	server.register(fastifyOtelInstrumentation.plugin());
 
+	server.register(cookie, { secret: params?.secret || 'unsafe' });
 	server.register(fastifyIp, {
 		order: ['x-origin-cf-connecting-ip', 'cf-connecting-ip'],
 	});
@@ -86,10 +97,6 @@ export async function createHttpServer(
 	server.register(metrics, { endpoint: '/metrics' });
 	server.register(middie).after(() => {
 		applyHooks(server);
-	});
-
-	server.addHook('onRequest', async (request, reply) => {
-		request.userAgent = UAParser(request.headers['user-agent']);
 	});
 
 	if (params?.contentType?.includes('json')) {
@@ -119,7 +126,23 @@ export async function createHttpServer(
 		activeRequests++;
 	});
 
+	server.addHook('onRequest', async (request, reply) => {
+		let country = request.headers?.['x-origin-cf-ipcountry'] as string;
+		if (!country) country = request.headers?.['cf-ipcountry'] as string;
+		if (!country) country = 'zz';
+
+		let referer = request.headers?.['origin'];
+		if (!referer) referer = request.headers?.['referer'];
+		if (!referer) referer = undefined;
+
+		request.country = country;
+		request.referer = referer;
+		request.userAgent = UAParser(request.headers['user-agent']);
+		Container.of(request.id).set(RequestLike, new RequestLike(request.id));
+	});
+
 	server.addHook('onResponse', async (request, reply) => {
+		Container.reset(request.id);
 		activeRequests--;
 	});
 

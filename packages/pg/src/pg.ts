@@ -1,12 +1,14 @@
-import { Pool, PoolClient, PoolConfig } from 'pg';
-import { Service } from 'typedi';
+import { execSync } from 'node:child_process';
+
+import { Client, Pool, PoolClient, PoolConfig } from 'pg';
+import { Container, Service } from 'typedi';
 
 import { getLogger } from '@fw/logger';
 
 import { PgClient, PgClientRead } from './client';
 import { PgError } from './types';
 
-@Service()
+@Service({ global: true })
 export class Pg {
 	private pool: Pool;
 	private readPools: Record<string, Pool> = {};
@@ -14,25 +16,18 @@ export class Pg {
 	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgClient }> = new Map();
 	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgClientRead }> = new Map();
 
-	public async init(name: string, config: PoolConfig, slavesConfigs?: Record<string, PoolConfig>): Promise<void> {
-		if (this.pool) {
-			throw new PgError('Pool has already created');
-		}
-
+	public init(name: string, config: PoolConfig, slavesConfigs?: Record<string, PoolConfig>): void {
 		this.pool = new Pool({
 			application_name: name,
 			query_timeout: 12000,
+			idleTimeoutMillis: 30000,
 			keepAlive: true,
-			parseInputDatesAsUTC: true,
 			...config,
 		});
 
 		this.pool.on('error', (err) => {
 			getLogger().error('pgError', err);
 		});
-
-		await this.pool.connect();
-		getLogger().info('pg', 'master', 'connected');
 
 		if (slavesConfigs && Object.keys(slavesConfigs).length) {
 			for (const slaveConfigName of Object.keys(slavesConfigs || {})) {
@@ -41,7 +36,6 @@ export class Pg {
 					application_name: name,
 					query_timeout: 12000,
 					keepAlive: true,
-					parseInputDatesAsUTC: true,
 					...slaveConfig,
 				});
 
@@ -49,7 +43,6 @@ export class Pg {
 					getLogger().error('pgError', err);
 				});
 
-				await this.readPools[slaveConfigName].connect();
 				getLogger().info('pg', slaveConfigName, 'connected');
 			}
 		}
@@ -66,7 +59,7 @@ export class Pg {
 		}
 	}
 
-	public async createClient(containerId: string): Promise<PgClient> {
+	public async createClient(containerId: string): Promise<void> {
 		if (!this.pool) {
 			throw new PgError('Pool does not exist');
 		}
@@ -79,11 +72,11 @@ export class Pg {
 		const masterClient = new PgClient(poolClient);
 		this.clients.set(containerId, { poolClient, masterClient });
 
-		return masterClient;
+		Container.of(containerId).set(PgClient, masterClient);
 	}
 
-	public async createReadClient(containerId: string, slaveName: string): Promise<PgClientRead> {
-		const pool = this.readPools[slaveName];
+	public async createReadClient(containerId: string, slaveName: string): Promise<void> {
+		const pool = this.readPools?.[slaveName];
 		if (!pool) {
 			throw new PgError('Pool does not exist');
 		}
@@ -96,7 +89,7 @@ export class Pg {
 		const readClient = new PgClientRead(poolClient);
 		this.readClients.set(`${containerId}/${slaveName}`, { poolClient, readClient });
 
-		return readClient;
+		Container.of(containerId).set(PgClientRead, readClient);
 	}
 
 	public releaseClient(containerId: string): void {
@@ -123,21 +116,5 @@ export class Pg {
 			this.readClients.get(key)!.poolClient.release();
 			this.readClients.delete(key);
 		}
-	}
-
-	public getClient(containerId: string): PgClient {
-		if (!this.clients.has(containerId)) {
-			throw new PgError('This container does not have client');
-		}
-
-		return this.clients.get(containerId)!.masterClient;
-	}
-
-	public getReadClient(containerId: string, slaveName: string): PgClientRead {
-		if (!this.readClients.has(`${containerId}/${slaveName}`)) {
-			throw new PgError('This container does not have client');
-		}
-
-		return this.readClients.get(`${containerId}/${slaveName}`)!.readClient;
 	}
 }

@@ -1,6 +1,6 @@
 import { invoke } from 'es-toolkit/compat';
 
-import type { GuardCallback, ServerRequest } from './types';
+import { EndpointReply, GuardCallback, ServerRequest } from './types';
 
 const KEYWORD_METADATA = 'guards';
 
@@ -10,7 +10,7 @@ export async function executeGuards(controllerClass: CallableFunction, cb: Calla
 
 	if (guards.length) {
 		for (const guard of guards) {
-			const result = await invoke(guard, '', [req]);
+			const result = await guard(req);
 			if (!result) return false;
 		}
 	}
@@ -19,8 +19,13 @@ export async function executeGuards(controllerClass: CallableFunction, cb: Calla
 }
 
 export function Guard(...guards: GuardCallback[]) {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (target: any, prop?: string, descriptor?: TypedPropertyDescriptor<unknown>) => {
+	return (
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		target: any,
+		prop?: string,
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		descriptor?: TypedPropertyDescriptor<(request: ServerRequest<any>) => Promise<EndpointReply<any>>>,
+	) => {
 		if (prop && descriptor) {
 			// method
 			const map = Reflect.hasMetadata(KEYWORD_METADATA, target.constructor)

@@ -9,5 +9,8 @@
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"build": "tsc -p ./tsconfig.build.json"
+	},
+	"devDependencies": {
+		"@fw/cache": "workspace:^"
 	}
 }
