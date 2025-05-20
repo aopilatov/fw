@@ -51,6 +51,13 @@ export class Redis {
 		this.client = null;
 	}
 
+	// use only in tests
+	public async flushAll(): Promise<void> {
+		if (!this.client) throw new Error('Client is not defined');
+		// @ts-ignore
+		return this.client.flushAll();
+	}
+
 	public async set(key: RedisArgument, value: RedisArgument | number, options?: SetOptions): Promise<string | null> {
 		if (!this.client) throw new Error('Client is not defined');
 		return this.client.set(key, value, options);
