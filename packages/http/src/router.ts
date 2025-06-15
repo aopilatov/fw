@@ -46,12 +46,16 @@ export class Router {
 					const answer = (await invoke(controllerClass, endpoint, [req, res])) as EndpointReply;
 					if (answer?.headers) res.headers(answer.headers);
 					if (answer?.cookies) {
-						res.setCookie('token-auth', answer.cookies, {
-							httpOnly: true,
-							secure: true,
-							path: '/',
-							maxAge: 3600,
-						});
+						if (answer.cookies === 'delete') {
+							res.clearCookie('token-auth');
+						} else {
+							res.setCookie('token-auth', answer.cookies, {
+								httpOnly: true,
+								secure: true,
+								path: '/',
+								maxAge: 3600,
+							});
+						}
 					}
 
 					res.code(answer.statusCode);

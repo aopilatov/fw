@@ -30,6 +30,10 @@ declare module 'fastify' {
 		country: string;
 		referer: string | undefined;
 		user?: unknown;
+		auth?: {
+			model: unknown;
+			token: Record<string, unknown>;
+		};
 	}
 }
 
