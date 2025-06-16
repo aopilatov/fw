@@ -2,13 +2,13 @@
   "name": "@fw/socket",
   "version": "1.0.0",
   "description": "Socket (centrifugo) lib",
-  "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p ./tsconfig.json",
-    "build": "tsc -p ./tsconfig.build.json && cp ./src/api.proto ./dist"
+		"build": "rm -rf ./dist && rm tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json && cp ./src/api.proto ./dist",
+		"publish-gcp": "sh ./publish.sh"
   },
   "dependencies": {
     "@google-cloud/pubsub": "4.11.0",

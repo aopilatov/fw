@@ -2,13 +2,13 @@
 	"name": "@fw/pubsub",
 	"version": "1.0.0",
 	"description": "PubSub lib",
-	"private": true,
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
-		"build": "tsc -p ./tsconfig.build.json"
+		"build": "rm -rf ./dist && rm tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
+		"publish-gcp": "sh ./publish.sh"
 	},
 	"dependencies": {
 		"@google-cloud/pubsub": "4.11.0"

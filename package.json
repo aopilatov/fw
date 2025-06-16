@@ -6,8 +6,10 @@
   "packageManager": "pnpm@10.10.0",
   "workspaces": ["packages/*"],
   "scripts": {
-    "build": "pnpm -r run build"
-  },
+    "build": "pnpm -r run build",
+		"publish-gcp-prod": "pnpm -r run publish-gcp-prod",
+		"publish-gcp-stage": "pnpm -r run publish-gcp-stage"
+	},
   "dependencies": {
     "@eslint/compat": "1.2.8",
     "@eslint/eslintrc": "3.3.1",

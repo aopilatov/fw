@@ -2,13 +2,13 @@
   "name": "@fw/telemetry",
   "version": "1.0.0",
   "description": "OpenTelemetry SDK lib",
-  "private": true,
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
-		"build": "tsc -p ./tsconfig.build.json"
+		"build": "rm -rf ./dist && rm tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
+		"publish-gcp": "sh ./publish.sh"
 	},
   "dependencies": {
 		"@opentelemetry/auto-instrumentations-node": "^0.57.1",
