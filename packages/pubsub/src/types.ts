@@ -3,6 +3,7 @@ import { Topic, Subscription, Message } from '@google-cloud/pubsub';
 export interface ConfigDev {
 	projectId: string;
 	host: string;
+	isTest?: boolean;
 }
 
 export type Config = string | ConfigDev;

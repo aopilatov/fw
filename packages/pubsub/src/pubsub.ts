@@ -11,11 +11,13 @@ import { Config, PubSubSchema, LimitConfig, TopicData } from './types';
 @Service({ global: true })
 export class PubSub {
 	private isEmulator: boolean;
+	private isTest: boolean;
 	private client: GcpPubSub;
 	private topics: Partial<Record<keyof PubSubSchema, TopicData>> = {};
 
 	public connect(config: Config): void {
 		if (this.client) return;
+		this.isTest = false;
 
 		const pubSubConf: ClientConfig = {};
 		if (typeof config === 'string') {
@@ -32,9 +34,13 @@ export class PubSub {
 
 			process.env.PUBSUB_PROJECT_ID = 'originals-local';
 			process.env.PUBSUB_EMULATOR_HOST = 'localhost:8085';
+
+			this.isTest = !!config.isTest;
 		}
 
-		this.client = new GcpPubSub(pubSubConf);
+		if (!this.isTest) {
+			this.client = new GcpPubSub(pubSubConf);
+		}
 	}
 
 	public async disconnect(): Promise<void> {
@@ -42,6 +48,8 @@ export class PubSub {
 	}
 
 	public async registerTopic<T extends keyof PubSubSchema>(id: T): Promise<void> {
+		if (!this.client) return;
+
 		if (!(id in this.topics)) {
 			let topic = this.client.topic(id);
 
@@ -62,6 +70,8 @@ export class PubSub {
 
 		return {
 			publish: async (data: PubSubSchema[T]) => {
+				if (!this.client) return;
+
 				const dataBuffer = Buffer.from(JSON.stringify(data));
 				if (process.env?.NODE_ENV === 'test') {
 					getLogger().info('PubSub message', data);
@@ -82,6 +92,12 @@ export class PubSub {
 				errorHandler?: (rawMessage: Message, error: unknown) => Promise<void>,
 				limitConfig?: LimitConfig,
 			) => {
+				if (this.isTest) {
+					return {
+						unsubscribe: async () => {},
+					};
+				}
+
 				if (topic.subscriptions.has(name)) {
 					getLogger().warn(`Subscription ${name} already exists `, await topic.topic.getMetadata());
 					throw new PubSubError(`Subscription ${name} already exists`);
