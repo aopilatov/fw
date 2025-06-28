@@ -12,7 +12,12 @@ import { CentrifugoApi } from './api';
 export class Centrifugo {
 	private readonly client: CentrifugoApi;
 
-	constructor(private readonly host: string) {
+	constructor(
+		private readonly host: string,
+		private readonly isTest: boolean = false,
+	) {
+		if (isTest) return;
+
 		const definition = loadSync(path.join(__dirname, 'api.proto'), {
 			keepCase: true,
 			longs: String,
@@ -34,6 +39,8 @@ export class Centrifugo {
 	}
 
 	private callGrpcMethod(method: string, params: unknown) {
+		if (this.isTest) return;
+
 		return new Promise((resolve, reject) => {
 			this.client?.[method](params, (err: unknown, res: unknown) => {
 				if (err) return reject(err);
