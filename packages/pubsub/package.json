@@ -1,6 +1,6 @@
 {
 	"name": "@fw/pubsub",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "PubSub lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
