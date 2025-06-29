@@ -150,6 +150,18 @@ export async function createHttpServer(
 		activeRequests--;
 	});
 
+	server.get('/', (req, res) => {
+		if (params?.maxConcurrentRequests && activeRequests >= params.maxConcurrentRequests) {
+			return res.code(503).send('busy');
+		}
+
+		if (serverIsReady) {
+			return res.code(200).send('ok');
+		}
+
+		return res.code(500).send('not ok');
+	});
+
 	server.get('/_/readiness', (req, res) => {
 		if (params?.maxConcurrentRequests && activeRequests >= params.maxConcurrentRequests) {
 			return res.code(503).send('busy');
