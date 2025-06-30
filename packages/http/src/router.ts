@@ -8,9 +8,14 @@ import { EndpointMetadata, EndpointReply, ServerInstance, ServerRequest, ServerR
 
 export class Router {
 	private static readonly controllers: Map<string, ClassConstructor<CallableFunction>> = new Map();
+	private static cookiesDomain: string | undefined = undefined;
 
 	public static register(prefix: string, ControllerClass: ClassConstructor<CallableFunction>): void {
 		Router.controllers.set(prefix, ControllerClass);
+	}
+
+	public static setCookiesDomain(value: string): void {
+		this.cookiesDomain = value;
 	}
 
 	public static apply(server: ServerInstance): void {
@@ -47,20 +52,15 @@ export class Router {
 					if (answer?.headers) res.headers(answer.headers);
 					if (answer?.cookies) {
 						if (answer.cookies === 'delete') {
-							res.clearCookie('token-auth');
+							res.clearCookie(`token-auth-${this.cookiesDomain || 'local'}`);
 						} else {
-							let domain: string | undefined = undefined;
-							if (req?.headers?.origin) {
-								const origin = new URL(req.headers.origin);
-								domain = origin.hostname;
-							}
-
-							res.setCookie('token-auth', answer.cookies, {
+							res.setCookie(`token-auth-${this.cookiesDomain || 'local'}`, answer.cookies, {
 								httpOnly: true,
 								secure: true,
 								path: '/',
-								domain,
+								domain: this.cookiesDomain ? `.${this.cookiesDomain}` : undefined,
 								maxAge: 3600,
+								sameSite: 'none',
 							});
 						}
 					}

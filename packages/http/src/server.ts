@@ -54,6 +54,7 @@ export async function createHttpServer(
 		key?: string;
 		cert?: string;
 		secret?: string;
+		cookiesDomain?: string;
 	},
 ): Promise<ServerInstance> {
 	const server: ServerInstance = fastify({
@@ -178,6 +179,7 @@ export async function createHttpServer(
 		serverIsReady = true;
 	});
 
+	if (params?.cookiesDomain) Router.setCookiesDomain(params.cookiesDomain);
 	Router.apply(server);
 
 	if (params?.onStartup) {

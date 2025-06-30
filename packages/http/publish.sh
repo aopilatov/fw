@@ -15,6 +15,7 @@ echo "Set quota to $GCP_PROJECT_ID..."
 gcloud auth application-default set-quota-project "$GCP_PROJECT_ID"
 
 echo "Publishing package to $NPM_REGISTRY..."
+pnpx google-artifactregistry-auth
 pnpm publish --registry="$NPM_REGISTRY" --no-git-checks
 
 echo "Done."
