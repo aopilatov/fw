@@ -49,10 +49,17 @@ export class Router {
 						if (answer.cookies === 'delete') {
 							res.clearCookie('token-auth');
 						} else {
+							let domain: string | undefined = undefined;
+							if (req?.headers?.origin) {
+								const origin = new URL(req.headers.origin);
+								domain = origin.hostname;
+							}
+
 							res.setCookie('token-auth', answer.cookies, {
 								httpOnly: true,
 								secure: true,
 								path: '/',
+								domain,
 								maxAge: 3600,
 							});
 						}

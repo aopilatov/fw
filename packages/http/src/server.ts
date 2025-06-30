@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import crypto from 'node:crypto';
 
-import cookie, { FastifyCookieOptions } from '@fastify/cookie';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import middie from '@fastify/middie';
