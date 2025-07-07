@@ -1,5 +1,3 @@
-import * as crypto from 'node:crypto';
-import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import { loadPackageDefinition, credentials } from '@grpc/grpc-js';
@@ -7,6 +5,7 @@ import { loadSync } from '@grpc/proto-loader';
 import { Service } from 'typedi';
 
 import { CentrifugoApi } from './api';
+import { SocketSchema } from './types';
 
 @Service()
 export class Centrifugo {
@@ -31,7 +30,7 @@ export class Centrifugo {
 		this.client = new api.CentrifugoApi(host, credentials.createInsecure());
 	}
 
-	public async publish(channel: string, data: Record<string, unknown>): Promise<void> {
+	public async publish(channel: string, data: SocketSchema): Promise<void> {
 		await this.callGrpcMethod('Publish', {
 			channel,
 			data: Buffer.from(JSON.stringify(data)),
