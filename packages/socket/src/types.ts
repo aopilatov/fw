@@ -1,3 +1,1 @@
-export interface SocketSchema {
-	EXAMPLE: { nothing: string };
-}
+export type SocketSchema = unknown;
