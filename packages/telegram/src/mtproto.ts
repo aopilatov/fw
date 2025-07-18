@@ -93,7 +93,7 @@ export class TelegramMtproto {
 		};
 	}
 
-	private async sendMessage(message: TelegramMessage) {
+	private async sendMessage(message: TelegramMessage): Promise<string> {
 		const payload = message.toMtproto();
 
 		let data!: Api.messages.SendMedia | Api.messages.SendMessage;
@@ -104,10 +104,13 @@ export class TelegramMtproto {
 		}
 
 		try {
-			await this.client.invoke(data);
+			const result = await this.client.invoke(data);
 			getLogger().info('mtproto', 'message sent');
+
+			return String(result['id'] || '0');
 		} catch (e: unknown) {
 			getLogger().error('mtproto', 'error', e);
+			throw e;
 		}
 	}
 }
