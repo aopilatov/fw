@@ -10,6 +10,7 @@ export class TelegramMessage {
 	private message: string;
 	private media: string | undefined;
 	private replyMarkupRows: { buttons: KeyboardButton[] }[] | undefined = undefined;
+	private replyTo: number | undefined = undefined;
 
 	public setRecipient(chat: string | number): TelegramMessage {
 		this.chat = chat;
@@ -40,6 +41,11 @@ export class TelegramMessage {
 		return this;
 	}
 
+	public setReplyTo(replyTo: number): TelegramMessage {
+		this.replyTo = replyTo;
+		return this;
+	}
+
 	public toMtproto() {
 		let peer!: Api.TypeEntityLike;
 
@@ -50,6 +56,11 @@ export class TelegramMessage {
 			});
 		} else {
 			peer = BigInteger(this.chat.toString());
+		}
+
+		let replyTo: Api.InputReplyToMessage | undefined = undefined;
+		if (this.replyTo) {
+			replyTo = new Api.InputReplyToMessage({ replyToMsgId: this.replyTo });
 		}
 
 		const [message, entities] = HTMLParser.parse(this.message);
@@ -108,6 +119,7 @@ export class TelegramMessage {
 			message,
 			replyMarkup,
 			media,
+			replyTo,
 		};
 	}
 }

@@ -83,12 +83,12 @@ export class TelegramMtproto {
 		);
 	}
 
-	public message(): { builder: TelegramMessage; send: () => Promise<void> } {
+	public message(): { builder: TelegramMessage; send: () => Promise<string> } {
 		const builder = new TelegramMessage();
 		return {
 			builder,
 			send: async () => {
-				await this.sendMessage(builder);
+				return await this.sendMessage(builder);
 			},
 		};
 	}
