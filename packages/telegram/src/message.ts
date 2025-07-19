@@ -1,4 +1,5 @@
 import BigInteger from 'big-integer';
+import { InlineKeyboard } from 'grammy';
 import { Api } from 'telegram';
 import { HTMLParser } from 'telegram/extensions/html';
 
@@ -11,6 +12,12 @@ export class TelegramMessage {
 	private media: string | undefined;
 	private replyMarkupRows: { buttons: KeyboardButton[] }[] | undefined = undefined;
 	private replyTo: number | undefined = undefined;
+	private isChannel: boolean = false;
+
+	public setIsChannel(isChannel: boolean): TelegramMessage {
+		this.isChannel = isChannel;
+		return this;
+	}
 
 	public setRecipient(chat: string | number): TelegramMessage {
 		this.chat = chat;
@@ -46,14 +53,87 @@ export class TelegramMessage {
 		return this;
 	}
 
+	public toApi() {
+		let cmd: 'sendMessage' | 'sendPhoto' | 'sendVideo' = 'sendMessage';
+
+		let peer: number = Number(this.chat);
+		if (this.isChannel) {
+			peer = Number(`-100${peer}`);
+		}
+
+		const options: Record<string, unknown> = { parse_mode: 'HTML' };
+
+		if (this.replyTo) {
+			options['reply_to_message_id'] = this.replyTo;
+		}
+
+		if (this?.replyMarkupRows) {
+			const replyMarkup = new InlineKeyboard();
+			for (const row of this.replyMarkupRows) {
+				for (const button of row.buttons) {
+					switch (button.type) {
+						case 'url':
+							replyMarkup.url(button.text, button.url);
+							break;
+
+						case 'webview':
+							replyMarkup.webApp(button.text, button.url);
+							break;
+
+						case 'callback':
+							replyMarkup.text(button.text, button.data.toString('utf-8'));
+							break;
+					}
+				}
+
+				replyMarkup.row();
+			}
+
+			options['reply_markup'] = replyMarkup;
+		}
+
+		if (this?.media) {
+			options['caption'] = this.message;
+
+			if (/\.(jpg|jpeg|png|gif)$/i.test(this.media)) {
+				cmd = 'sendPhoto';
+			}
+
+			if (/\.(mp4)$/i.test(this.media)) {
+				cmd = 'sendVideo';
+			}
+
+			return {
+				cmd,
+				chatId: peer,
+				message: this.media,
+				params: options,
+			};
+		}
+
+		return {
+			cmd,
+			chatId: peer,
+			message: this.message,
+			params: options,
+		};
+	}
+
 	public toMtproto() {
 		let peer!: Api.TypeEntityLike;
 
 		if (this?.accessHash) {
-			peer = new Api.InputUser({
-				userId: BigInteger(this.chat.toString()),
-				accessHash: BigInteger(this.accessHash),
-			});
+			if (this.isChannel) {
+				peer = new Api.InputPeerChannel({
+					channelId: BigInteger(this.chat.toString()),
+					accessHash: BigInteger(this.accessHash),
+				});
+			} else {
+				peer = new Api.InputUser({
+					userId: BigInteger(this.chat.toString()),
+					accessHash: BigInteger(this.accessHash),
+				});
+			}
 		} else {
 			peer = BigInteger(this.chat.toString());
 		}

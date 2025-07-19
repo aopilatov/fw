@@ -225,6 +225,9 @@ importers:
       big-integer:
         specifier: ^1.6.52
         version: 1.6.52
+      grammy:
+        specifier: ^1.37.0
+        version: 1.37.0
       telegram:
         specifier: ^2.26.22
         version: 2.26.22
@@ -450,6 +453,9 @@ packages:
   '@google-cloud/pubsub@4.11.0':
     resolution: {integrity: sha512-xWxJAlyUGd6OPp97u8maMcI3xVXuHjxfwh6Dr7P/P+6NK9o446slJobsbgsmK0xKY4nTK8m5uuJrhEKapfZSmQ==}
     engines: {node: '>=14.0.0'}
+
+  '@grammyjs/types@3.21.0':
+    resolution: {integrity: sha512-IMj0EpmglPCICuyfGRx4ENKPSuzS2xMSoPgSPzHC6FtnWKDEmJLBP/GbPv/h3TAeb27txqxm/BUld+gbJk6ccQ==}
 
   '@grpc/grpc-js@1.13.3':
     resolution: {integrity: sha512-FTXHdOoPbZrBjlVLHuKbDZnsTxXv2BlHF57xw6LuThXacXvtkahEPED0CKMk6obZDf65Hv4k3z62eyPNpvinIg==}
@@ -1901,6 +1907,10 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
+  grammy@1.37.0:
+    resolution: {integrity: sha512-UBGqGKux+49t1vm7n/m1BaeXIYbWESXjhaFxG+9z33VTLSHdQJwIOmpNKmZSaoBlSWbAJE+IJZ30X7RfWvEolA==}
+    engines: {node: ^12.20.0 || >=14.13.1}
+
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
 
@@ -3230,6 +3240,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@grammyjs/types@3.21.0': {}
 
   '@grpc/grpc-js@1.13.3':
     dependencies:
@@ -5131,6 +5143,16 @@ snapshots:
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
+
+  grammy@1.37.0:
+    dependencies:
+      '@grammyjs/types': 3.21.0
+      abort-controller: 3.0.0
+      debug: 4.4.0
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
 
   graphemer@1.4.0: {}
 

@@ -1,3 +1,4 @@
+import BigInteger from 'big-integer';
 import { TelegramClient, Api } from 'telegram';
 import { NewMessageEvent } from 'telegram/events';
 import { CallbackQueryEvent } from 'telegram/events/CallbackQuery';
@@ -83,6 +84,23 @@ export class TelegramMtproto {
 		);
 	}
 
+	public async getDialogs() {
+		try {
+			return await this.client.invoke(
+				new Api.messages.GetDialogs({
+					limit: 1000,
+					offsetDate: 0,
+					offsetId: 0,
+					hash: BigInteger(0),
+					offsetPeer: new Api.InputPeerEmpty(),
+				}),
+			);
+		} catch (e: unknown) {
+			getLogger().error('mtproto getDialogs', 'error', e);
+			throw e;
+		}
+	}
+
 	public message(): { builder: TelegramMessage; send: () => Promise<string> } {
 		const builder = new TelegramMessage();
 		return {
@@ -105,11 +123,11 @@ export class TelegramMtproto {
 
 		try {
 			const result = await this.client.invoke(data);
-			getLogger().info('mtproto', 'message sent');
+			getLogger().info('mtproto sendMessage', 'message sent');
 
 			return String(result['id'] || '0');
 		} catch (e: unknown) {
-			getLogger().error('mtproto', 'error', e);
+			getLogger().error('mtproto sendMessage', 'error', e);
 			throw e;
 		}
 	}
