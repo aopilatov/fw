@@ -115,6 +115,11 @@ export class Redis {
 		return this.client.sAdd(key, members);
 	}
 
+	public async sMembers(key: RedisArgument): Promise<string[]> {
+		if (!this.client) throw new Error('Client is not defined');
+		return this.client.sMembers(key);
+	}
+
 	public async sIsMember(key: RedisArgument, member: RedisArgument): Promise<boolean> {
 		if (!this.client) throw new Error('Client is not defined');
 		return this.client.sIsMember(key, member);

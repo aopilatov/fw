@@ -1,6 +1,4 @@
-import { execSync } from 'node:child_process';
-
-import { Client, Pool, PoolClient, PoolConfig } from 'pg';
+import { Pool, PoolClient, PoolConfig } from 'pg';
 import { Container, Service } from 'typedi';
 
 import { getLogger } from '@fw/logger';

@@ -48,6 +48,7 @@ export class PgClient extends PgClientRead {
 		return this.client.query(query, values);
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public async insertMany<R extends QueryResultRow = any, D extends Record<string, any> = any>(
 		table: string,
 		rows: D[],

@@ -7,7 +7,7 @@
 	"scripts": {
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
-		"build": "rm -rf ./dist && rm tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
+		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
 	"dependencies": {

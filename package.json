@@ -4,12 +4,13 @@
   "author": "aopilatov",
   "license": "ISC",
   "packageManager": "pnpm@10.10.0",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "pnpm -r run build",
-		"publish-gcp-prod": "pnpm -r run publish-gcp-prod",
-		"publish-gcp-stage": "pnpm -r run publish-gcp-stage"
-	},
+    "publish-gcp": "pnpm -r run publish-gcp"
+  },
   "dependencies": {
     "@eslint/compat": "1.2.8",
     "@eslint/eslintrc": "3.3.1",
@@ -31,6 +32,7 @@
     "glob": "11.0.2",
     "luxon": "3.6.1",
     "reflect-metadata": "0.2.2",
+    "rimraf": "^6.0.1",
     "source-map-support": "0.5.21",
     "tsconfig-paths": "4.2.0",
     "typedi": "0.10.0",
