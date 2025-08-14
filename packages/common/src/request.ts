@@ -35,10 +35,10 @@ export class RequestLike {
 
 	public async executeDefers(): Promise<void> {
 		if (!this.defers.length) return;
-		await Promise.allSettled(this.defers).then((results) => {
-			for (const result of results.filter((item) => item.status === 'rejected')) {
-				getLogger(this.requestId).error('defer failed', result.reason);
-			}
-		});
+		const results = await Promise.allSettled(this.defers.map((item) => item()));
+		getLogger(this.requestId).info('executeDefers', results);
+		for (const result of results.filter((item) => item.status === 'rejected')) {
+			getLogger(this.requestId).error('defer failed', result.reason);
+		}
 	}
 }
