@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { PoolClient, QueryConfig, QueryConfigValues, QueryResult, QueryResultRow } from 'pg';
+import QueryStream from 'pg-query-stream';
 import { Service } from 'typedi';
 
 @Service()
@@ -12,6 +13,12 @@ export class PgClientRead {
 		values?: QueryConfigValues<I>,
 	): Promise<QueryResult<R>> {
 		return this.client.query(queryTextOrConfig, values);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public getQueryStream(queryText: string, values?: any[]): NodeJS.ReadableStream {
+		const query = new QueryStream(queryText, values);
+		return this.client.query(query);
 	}
 }
 
