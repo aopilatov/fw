@@ -30,7 +30,15 @@ export interface EndpointReply<T = unknown> {
 	statusCode: number;
 	body: T;
 	headers?: Record<string, string>;
-	cookies?: string;
+	cookies?:
+		| string
+		| {
+				name: string;
+				value: string;
+				options?: {
+					ageInMs?: number;
+				};
+		  };
 }
 
 export interface EndpointMetadata {

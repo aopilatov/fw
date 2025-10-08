@@ -51,17 +51,34 @@ export class Router {
 					const answer = (await invoke(controllerClass, endpoint, [req, res])) as EndpointReply;
 					if (answer?.headers) res.headers(answer.headers);
 					if (answer?.cookies) {
-						if (answer.cookies === 'delete') {
-							res.clearCookie(`token-auth-${this.cookiesDomain || 'local'}`);
-						} else {
-							res.setCookie(`token-auth-${this.cookiesDomain || 'local'}`, answer.cookies, {
-								httpOnly: true,
-								secure: true,
-								path: '/',
-								domain: this.cookiesDomain ?? undefined,
-								maxAge: 3600,
-								sameSite: 'none',
-							});
+						if (answer?.cookies) {
+							if (typeof answer.cookies === 'string') {
+								if (answer.cookies === 'delete') {
+									res.clearCookie(`token-auth-${this.cookiesDomain || 'local'}`);
+								} else {
+									res.setCookie(`token-auth-${this.cookiesDomain || 'local'}`, answer.cookies, {
+										httpOnly: true,
+										secure: true,
+										path: '/',
+										domain: this.cookiesDomain ?? undefined,
+										maxAge: 3600,
+										sameSite: 'none',
+									});
+								}
+							} else {
+								if (answer.cookies.value === 'delete') {
+									res.clearCookie(`${answer.cookies.name}-${this.cookiesDomain || 'local'}`);
+								} else {
+									res.setCookie(`${answer.cookies.name}-${this.cookiesDomain || 'local'}`, answer.cookies.value, {
+										httpOnly: true,
+										secure: true,
+										path: '/',
+										domain: this.cookiesDomain ?? undefined,
+										maxAge: answer.cookies?.options?.ageInMs || 3600,
+										sameSite: 'none',
+									});
+								}
+							}
 						}
 					}
 
