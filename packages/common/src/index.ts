@@ -1,3 +1,2 @@
+export * from './di';
 export * from './request';
-export * from './service';
-export * from './mixin';

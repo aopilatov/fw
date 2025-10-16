@@ -8,8 +8,7 @@
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
-		"publish-gcp": "sh ./publish.sh",
-		"dry-test": "ts-node ./src/di/test.ts"
+		"publish-gcp": "sh ./publish.sh"
 	},
 	"devDependencies": {
 		"@fw/cache": "workspace:^",

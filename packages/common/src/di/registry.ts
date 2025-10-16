@@ -153,9 +153,9 @@ export class Registry {
 					}
 				}
 
-				value = factoryInstance[serviceMetadata.factory[1]](this, serviceMetadata.id);
+				value = factoryInstance[serviceMetadata.factory[1]](caller, serviceMetadata.id);
 			} else {
-				value = serviceMetadata.factory(this, serviceMetadata.id);
+				value = serviceMetadata.factory(caller, serviceMetadata.id);
 			}
 		}
 

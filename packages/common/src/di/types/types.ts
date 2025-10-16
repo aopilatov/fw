@@ -15,7 +15,7 @@ export type AbstractConstructable<T> = NewableFunction & { prototype: T };
 
 export type Scope = 'singleton' | 'container' | 'transient';
 
-export type InstanceOf = 'global' | 'validation' | 'action' | 'service';
+export type InstanceOf = 'global' | 'validation' | 'action' | 'service' | 'repository' | 'system';
 
 export interface Handler<T = unknown> {
 	object: Constructable<T>;
