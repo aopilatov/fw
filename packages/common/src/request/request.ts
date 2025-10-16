@@ -1,3 +1,4 @@
+import { getLogger } from '@fw/logger';
 import { SystemService } from '../di/decoratorsService/system';
 
 import { RequestContext } from './context';
@@ -32,7 +33,7 @@ export class Request {
 		if (!this.defers.length) return;
 		const results = await Promise.allSettled(this.defers.map((item) => item()));
 		for (const result of results.filter((item) => item.status === 'rejected')) {
-			// getLogger(this.requestId).error('defer failed', result.reason);
+			getLogger(this.id).error('defer failed', result.reason);
 		}
 	}
 

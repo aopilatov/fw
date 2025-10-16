@@ -11,10 +11,6 @@
 		"publish-gcp": "sh ./publish.sh"
 	},
 	"devDependencies": {
-		"@fw/cache": "workspace:^",
-		"@fw/logger": "workspace:^",
-		"@fw/pg": "workspace:^",
-		"@fw/pubsub": "workspace:^",
-		"@fw/socket": "workspace:^"
+		"@fw/logger": "workspace:^"
 	}
 }

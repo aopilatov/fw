@@ -99,21 +99,9 @@ importers:
 
   packages/common:
     devDependencies:
-      '@fw/cache':
-        specifier: workspace:^
-        version: link:../cache
       '@fw/logger':
         specifier: workspace:^
         version: link:../logger
-      '@fw/pg':
-        specifier: workspace:^
-        version: link:../pg
-      '@fw/pubsub':
-        specifier: workspace:^
-        version: link:../pubsub
-      '@fw/socket':
-        specifier: workspace:^
-        version: link:../socket
 
   packages/http:
     dependencies:
