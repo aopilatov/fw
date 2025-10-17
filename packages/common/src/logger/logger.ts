@@ -3,13 +3,14 @@ import { prettyFormatter } from '@logtape/pretty';
 
 import { GlobalService } from '../di';
 
+import { LoggerError } from './errors';
 import { LogConfig } from './types';
 
 @GlobalService()
 export class Logger {
-	private readonly appName: string;
+	private appName: string;
 
-	constructor(config: LogConfig) {
+	public config(config: LogConfig): void {
 		this.appName = config.appName;
 
 		configureSync({
@@ -29,6 +30,10 @@ export class Logger {
 	}
 
 	public get(id?: string) {
+		if (!this.appName) {
+			throw new LoggerError('Logger is not configured. Call config() method first.');
+		}
+
 		const logger = getLogger([this.appName]);
 
 		if (id) {

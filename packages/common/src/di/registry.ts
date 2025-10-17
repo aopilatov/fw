@@ -114,6 +114,13 @@ export class Registry {
 		return this;
 	}
 
+	public static reset(id: string): void {
+		const instance = this.instances.find((item) => item.id === id);
+		if (instance) {
+			this.instances.splice(this.instances.indexOf(instance), 1);
+		}
+	}
+
 	public static registerHandler(handler: Handler): void {
 		Registry.handlers.push(handler);
 	}

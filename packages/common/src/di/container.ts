@@ -37,4 +37,9 @@ export class Container {
 		Registry.remove(identifierOrIdentifierArray);
 		return this;
 	}
+
+	public static reset(id: string): Container {
+		Registry.reset(id);
+		return this;
+	}
 }
