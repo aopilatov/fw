@@ -1,1 +1,2 @@
-export { getLogger } from '@logtape/logtape';
+export * from './logger';
+export * from './types';

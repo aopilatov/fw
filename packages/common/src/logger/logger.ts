@@ -1,31 +1,40 @@
 import { configureSync, getConsoleSink, getLogger } from '@logtape/logtape';
 import { prettyFormatter } from '@logtape/pretty';
 
-import type { LogLevel } from '@logtape/logtape/src/level';
+import { GlobalService } from '../di';
 
+import { LogConfig } from './types';
+
+@GlobalService()
 export class Logger {
-	constructor(
-		private readonly appName: string,
-		lowestLevel: LogLevel = 'info',
-		prettify: boolean = false,
-	) {
+	private readonly appName: string;
+
+	constructor(config: LogConfig) {
+		this.appName = config.appName;
+
 		configureSync({
 			sinks: {
 				console: getConsoleSink({
-					formatter: prettify ? prettyFormatter : undefined,
+					formatter: config?.prettify ? prettyFormatter : undefined,
 				}),
 			},
 			loggers: [
 				{
-					category: appName,
+					category: config.appName,
 					sinks: ['console'],
-					lowestLevel,
+					lowestLevel: config.lowestLevel,
 				},
 			],
 		});
 	}
 
-	public getChild(id: string) {
-		return getLogger([this.appName]).getChild([id]);
+	public get(id?: string) {
+		const logger = getLogger([this.appName]);
+
+		if (id) {
+			return logger.with({ requestId: id });
+		}
+
+		return logger;
 	}
 }
