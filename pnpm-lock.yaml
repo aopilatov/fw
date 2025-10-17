@@ -98,6 +98,13 @@ importers:
         version: 4.7.0
 
   packages/common:
+    dependencies:
+      '@logtape/logtape':
+        specifier: ^1.1.1
+        version: 1.1.1
+      '@logtape/pretty':
+        specifier: ^1.1.1
+        version: 1.1.1(@logtape/logtape@1.1.1)
     devDependencies:
       '@fw/logger':
         specifier: workspace:^
@@ -512,6 +519,14 @@ packages:
 
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
+
+  '@logtape/logtape@1.1.1':
+    resolution: {integrity: sha512-/zpMuB2BZnL3LnBsy6PfFJp/4qP/60U9hE5j6eFwk25wBVtLpd7/bF3B1j7cnMD37R02fFyDyyHEmRSOz6+Qfg==}
+
+  '@logtape/pretty@1.1.1':
+    resolution: {integrity: sha512-rKqmPa+QLaQ8BsmzIl09j1PbepcoAJsJXlt5VScPcUOXhY/BaG2nF8rSuC3aS43oavHUgrbNGjgLOD3yCiYZow==}
+    peerDependencies:
+      '@logtape/logtape': ^1.1.1
 
   '@lukeed/ms@2.0.2':
     resolution: {integrity: sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==}
@@ -3414,6 +3429,12 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@js-sdsl/ordered-map@4.4.2': {}
+
+  '@logtape/logtape@1.1.1': {}
+
+  '@logtape/pretty@1.1.1(@logtape/logtape@1.1.1)':
+    dependencies:
+      '@logtape/logtape': 1.1.1
 
   '@lukeed/ms@2.0.2': {}
 
