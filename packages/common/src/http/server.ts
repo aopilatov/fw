@@ -8,9 +8,9 @@ import { LogLevel } from '@logtape/logtape/src/level';
 import { set } from 'es-toolkit/compat';
 import { fastify, FastifyContextConfig } from 'fastify';
 import fastifyIp from 'fastify-ip';
-import { Container } from 'typedi';
 import { UAParser, IResult } from 'ua-parser-js';
 
+import { Container } from '../di';
 import { Logger } from '../logger';
 
 import { certExample, keyExample } from './consts';

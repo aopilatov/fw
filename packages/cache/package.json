@@ -11,6 +11,6 @@
 		"publish-gcp": "sh ./publish.sh"
 	},
   "dependencies": {
-    "redis": "4.7.0"
+    "redis": "5.8.3"
   }
 }
