@@ -1,7 +1,7 @@
 {
-	"name": "@fw/pubsub",
-	"version": "1.0.2",
-	"description": "PubSub lib",
+	"name": "@fw/gcp-pubsub",
+	"version": "1.0.1",
+	"description": "GCP PubSub lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
@@ -10,10 +10,10 @@
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
-	"dependencies": {
-		"@google-cloud/pubsub": "4.11.0"
-	},
 	"devDependencies": {
-		"@fw/logger": "workspace:^"
+		"@fw/common": "workspace:^"
+	},
+	"dependencies": {
+		"@google-cloud/pubsub": "5.2.0"
 	}
 }

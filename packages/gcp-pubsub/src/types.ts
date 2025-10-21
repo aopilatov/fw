@@ -1,23 +1,23 @@
 import { Topic, Subscription, Message } from '@google-cloud/pubsub';
 
-export interface ConfigDev {
+export interface GcpPubSubConfigDev {
 	projectId: string;
 	host: string;
 	isTest?: boolean;
 }
 
-export type Config = string | ConfigDev;
+export type GcpPubSubConfig = string | GcpPubSubConfigDev;
 
-export interface TopicData {
+export interface GcpPubSubTopicData {
 	topic: Topic;
 	subscriptions: Map<string, { subscription: Subscription; callback: (message: Message) => Promise<void> }>;
 }
 
-export interface PubSubSchema {
+export interface GcpPubSubSchema {
 	EXAMPLE: { nothing: string };
 }
 
-export type LimitConfig = {
+export type GcpPubSubLimitConfig = {
 	maxMessages: number;
 	maxExtensionMinutes: number;
 };

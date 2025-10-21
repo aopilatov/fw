@@ -1,7 +1,7 @@
 import { omit } from 'es-toolkit';
 import { createCluster, createClient, RedisClientType, RedisClusterType, SetOptions } from 'redis';
 
-import { SystemService } from '@fw/common/src/di/decoratorsService/system';
+import { SystemService } from '@fw/common';
 
 import {
 	RedisConfig,

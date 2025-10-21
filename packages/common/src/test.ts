@@ -9,14 +9,21 @@ class TestRepository {}
 class TestService {
 	@UseRequest() private readonly request: Request;
 	@UseRepository() private readonly repository: TestRepository;
+
+	public test() {
+		console.log(this.request.id);
+	}
 }
 
 @ActionService()
 class TestAction {
-	@UseService() private readonly service: TestService;
+	@UseService() public readonly service: TestService;
 }
 
 @ValidationService()
 class TestValidation {
-	@UseAction() private readonly action: TestAction;
+	@UseAction() public readonly action: TestAction;
 }
+
+const testValidation = Container.of('test').getValidation(TestValidation);
+testValidation.action.service.test();
