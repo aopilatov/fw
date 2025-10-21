@@ -1,13 +1,13 @@
 import { DIErrorInject, resolveToTypeWrapper, Constructable, Func, Registry } from '@fw/common';
 
-export function UseGcpPubSub(): Func {
+export function UseCentrifuge(): Func {
 	return function (target: object, propertyName: string | symbol, index?: number): void {
 		const typeWrapper = resolveToTypeWrapper(undefined, target, propertyName, index);
 		if (
 			typeWrapper === undefined ||
 			typeWrapper.eagerType === undefined ||
 			typeWrapper.eagerType === Object ||
-			typeWrapper.eagerType?.['name'] !== 'GcpPubSub'
+			typeWrapper.eagerType?.['name'] !== 'Centrifugo'
 		) {
 			throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
 		}
@@ -18,9 +18,9 @@ export function UseGcpPubSub(): Func {
 			index: index,
 			value: (containerInstance) => {
 				const targetService = Registry.getService(target.constructor);
-				if (targetService?.instanceOf && !['pubsub'].includes(targetService.instanceOf)) {
+				if (targetService?.instanceOf && !['socket'].includes(targetService.instanceOf)) {
 					throw new DIErrorInject(
-						`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()} -> GcpPubSub is allowed only in PubSub services`,
+						`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()} -> Centrifugo is allowed only in socket service`,
 					);
 				}
 
