@@ -24,7 +24,7 @@ import {
 export class Redis {
 	private client!: RedisClientType | RedisClusterType | null;
 
-	constructor(options: RedisConfig, onError: (error: unknown) => void) {
+	public init(options: RedisConfig, onError: (error: unknown) => void) {
 		const isCluster = options.isCluster;
 		const config = omit(options, ['isCluster']);
 
