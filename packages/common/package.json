@@ -8,8 +8,7 @@
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
-		"publish-gcp": "sh ./publish.sh",
-		"dry-run": "ts-node ./src/test.ts"
+		"publish-gcp": "sh ./publish.sh"
 	},
 	"dependencies": {
 		"@fastify/cookie": "11.0.2",
