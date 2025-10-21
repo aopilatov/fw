@@ -10,7 +10,10 @@
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
-  "dependencies": {
+	"devDependencies": {
+		"@fw/common": "workspace:^"
+	},
+	"dependencies": {
     "redis": "5.8.3"
   }
 }

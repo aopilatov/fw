@@ -96,6 +96,10 @@ importers:
       redis:
         specifier: 5.8.3
         version: 5.8.3
+    devDependencies:
+      '@fw/common':
+        specifier: workspace:^
+        version: link:../common
 
   packages/common:
     dependencies:

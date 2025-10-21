@@ -2,23 +2,23 @@ import { ClassConstructor } from 'class-transformer';
 import { get } from 'es-toolkit/compat';
 import cron from 'node-cron';
 
-import { CronTasks, WorkerAbstraction } from '@fw/worker/src';
+import { CronTasks, WorkerAbstraction } from './types';
 
-export class Registry {
+export class Workers {
 	private static readonly workers: Map<string, WorkerAbstraction> = new Map();
 
 	public static register(worker: ClassConstructor<WorkerAbstraction>, name: string): void {
-		if (Registry.workers.has(name)) {
+		if (Workers.workers.has(name)) {
 			throw new Error(`Worker "${name}" is already exists`);
 		}
 
-		Registry.workers.set(name, new worker());
+		Workers.workers.set(name, new worker());
 	}
 
 	public static async run(): Promise<void> {
-		const names: string[] = Array.from(Registry.workers.keys());
+		const names: string[] = Array.from(Workers.workers.keys());
 		for (const name of names) {
-			const worker = Registry.workers.get(name)!;
+			const worker = Workers.workers.get(name)!;
 
 			const isEnabled = Reflect.getMetadata('isEnabled', get(worker, 'constructor') as unknown as object) as boolean;
 			if (isEnabled) {
@@ -36,10 +36,10 @@ export class Registry {
 	}
 
 	public static async stop(): Promise<void> {
-		const names: string[] = Array.from(Registry.workers.keys());
+		const names: string[] = Array.from(Workers.workers.keys());
 		await Promise.all(
 			names.map((name) => {
-				const worker = Registry.workers.get(name)!;
+				const worker = Workers.workers.get(name)!;
 				if (worker?.shutdown) {
 					worker.shutdown();
 				}

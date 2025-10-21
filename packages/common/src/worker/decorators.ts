@@ -1,7 +1,7 @@
 import { ClassConstructor } from 'class-transformer';
 
-import { Registry } from './registry';
 import { CronExpression, CronTasks } from './types';
+import { Workers } from './workers';
 
 export function Worker(name: string, enabled: boolean = false) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -9,7 +9,7 @@ export function Worker(name: string, enabled: boolean = false) {
 		Reflect.defineMetadata('name', name, target);
 		Reflect.defineMetadata('isEnabled', enabled, target);
 
-		Registry.register(target, name);
+		Workers.register(target, name);
 		return target;
 	};
 }
