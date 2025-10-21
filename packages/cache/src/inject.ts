@@ -18,9 +18,9 @@ export function UseRedis(): Func {
 			index: index,
 			value: (containerInstance) => {
 				const targetService = Registry.getService(target.constructor);
-				if (targetService?.instanceOf && ['global'].includes(targetService.instanceOf)) {
+				if (targetService?.instanceOf && !['cache'].includes(targetService.instanceOf)) {
 					throw new DIErrorInject(
-						`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()} -> Request is not allowed here`,
+						`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()} -> Redis is allowed only in cache service`,
 					);
 				}
 
