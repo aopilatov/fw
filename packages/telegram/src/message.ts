@@ -3,14 +3,14 @@ import { InlineKeyboard } from 'grammy';
 import { Api } from 'telegram';
 import { HTMLParser } from 'telegram/extensions/html';
 
-import { KeyboardButton } from './types';
+import { TelegramKeyboardButton } from './types';
 
 export class TelegramMessage {
 	private chat: string | number;
 	private accessHash?: string;
 	private message: string;
 	private media: string | undefined;
-	private replyMarkupRows: { buttons: KeyboardButton[] }[] | undefined = undefined;
+	private replyMarkupRows: { buttons: TelegramKeyboardButton[] }[] | undefined = undefined;
 	private replyTo: number | undefined = undefined;
 	private isChannel: boolean = false;
 
@@ -39,7 +39,7 @@ export class TelegramMessage {
 		return this;
 	}
 
-	public addMarkupRow(buttons: KeyboardButton[]): TelegramMessage {
+	public addMarkupRow(buttons: TelegramKeyboardButton[]): TelegramMessage {
 		if (!this.replyMarkupRows) {
 			this.replyMarkupRows = [];
 		}

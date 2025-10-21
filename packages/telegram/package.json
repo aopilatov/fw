@@ -1,7 +1,7 @@
 {
-  "name": "@fw/lock",
-  "version": "1.0.0",
-  "description": "Lock lib",
+  "name": "@fw/telegram",
+  "version": "1.1.0",
+  "description": "Telegram lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
@@ -11,6 +11,12 @@
 		"publish-gcp": "sh ./publish.sh"
 	},
 	"devDependencies": {
-		"@fw/cache": "workspace:^"
+		"@fw/cache": "workspace:^",
+		"@fw/common": "workspace:^"
+	},
+	"dependencies": {
+		"big-integer": "1.6.52",
+		"grammy": "1.38.3",
+		"telegram": "2.26.22"
 	}
 }
