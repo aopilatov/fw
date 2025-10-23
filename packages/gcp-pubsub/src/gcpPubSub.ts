@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import process from 'node:process';
 
 import { ClientConfig, PubSub as GcpPubSubClient, Message } from '@google-cloud/pubsub';
@@ -126,8 +127,19 @@ export class GcpPubSub {
 					callback: async (message) => {
 						try {
 							const data: GcpPubSubSchema[T] = JSON.parse(Buffer.from(message.data).toString());
-							await handler(data);
-							message.ack();
+							if (!('requestId' in data)) {
+								throw new GcpPubSubError(`Message does not have requestId`);
+							}
+
+							const context = Reflect.getMetadata('context', handler.constructor) as unknown as AsyncLocalStorage<unknown>;
+							if (!context) {
+								throw new GcpPubSubError(`Context is not defined`);
+							}
+
+							await context.run({ correlationId: data.requestId }, async () => {
+								await handler(data);
+								message.ack();
+							});
 						} catch (error: unknown) {
 							Container.get(Logger).get().error(`Failed to process message:`, { error });
 							if (errorHandler) {

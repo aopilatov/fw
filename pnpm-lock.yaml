@@ -146,6 +146,9 @@ importers:
       fastify-ip:
         specifier: 2.0.0
         version: 2.0.0
+      node-cron:
+        specifier: 4.2.1
+        version: 4.2.1
 
   packages/gcp-pubsub:
     dependencies:
@@ -1671,6 +1674,10 @@ packages:
 
   next-tick@1.1.0:
     resolution: {integrity: sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==}
+
+  node-cron@4.2.1:
+    resolution: {integrity: sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==}
+    engines: {node: '>=6.0.0'}
 
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
@@ -4057,6 +4064,8 @@ snapshots:
   natural-compare@1.4.0: {}
 
   next-tick@1.1.0: {}
+
+  node-cron@4.2.1: {}
 
   node-domexception@1.0.0: {}
 

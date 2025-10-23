@@ -1,5 +1,4 @@
-import { Container } from '../di';
-import { SystemService } from '../di/decoratorsService/system';
+import { Container, SystemService } from '../di';
 import { Logger } from '../logger';
 
 import { RequestContext } from './context';

@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import { ClassConstructor } from 'class-transformer';
 
 import { CronExpression, CronTasks } from './types';
@@ -8,6 +10,7 @@ export function Worker(name: string, enabled: boolean = false) {
 	return (target: ClassConstructor<any>) => {
 		Reflect.defineMetadata('name', name, target);
 		Reflect.defineMetadata('isEnabled', enabled, target);
+		Reflect.defineMetadata('context', new AsyncLocalStorage(), target);
 
 		Workers.register(target, name);
 		return target;
