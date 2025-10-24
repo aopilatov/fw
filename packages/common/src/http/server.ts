@@ -20,6 +20,7 @@ import {
 	GuardCallback,
 	MiddlewareEvent,
 	OnStartup,
+	RequestCallback,
 	Route,
 	RouteFunc,
 	RouteMethod,
@@ -48,7 +49,6 @@ export class Server {
 	private static isReady: boolean = false;
 	private static activeRequests: number = 0;
 
-	private static readonly hooks: MiddlewareEvent[] = [];
 	private static readonly routes: Route[] = [];
 
 	private static bodyLimit: number = 1048576;
@@ -61,6 +61,8 @@ export class Server {
 	private static certificateKey: string = keyExample;
 	private static errorHandler?: ErrorHandler;
 	private static onStartup?: OnStartup;
+	private static onRequest?: RequestCallback;
+	private static onResponse?: RequestCallback;
 	private static readonly origin: string[] = [];
 	private static readonly contentType: string[] = [];
 	private static readonly customIpHeaders: string[] = [];
@@ -73,11 +75,6 @@ export class Server {
 
 	public static setIsDev(isDev: boolean): Server {
 		this.isDev = isDev;
-		return Server;
-	}
-
-	public static addHook(hook: MiddlewareEvent): Server {
-		this.hooks.push(hook);
 		return Server;
 	}
 
@@ -216,6 +213,16 @@ export class Server {
 		return Server;
 	}
 
+	public static setOnRequest(onRequest: RequestCallback): Server {
+		this.onRequest = onRequest;
+		return Server;
+	}
+
+	public static setOnResponse(onResponse: RequestCallback): Server {
+		this.onResponse = onResponse;
+		return Server;
+	}
+
 	public static addOrigin(address: string): Server {
 		this.origin.push(address);
 		return Server;
@@ -246,7 +253,6 @@ export class Server {
 		}
 
 		Container.get(Logger).config({
-			appName: this.name,
 			lowestLevel: logLevel,
 			prettify: this.isDev,
 		});
@@ -281,14 +287,6 @@ export class Server {
 			});
 		}
 
-		if (Server.hooks.length) {
-			server.register(middie).after(() => {
-				for (const hook of Server.hooks) {
-					server.addHook(hook.event, hook.cb as unknown as () => void);
-				}
-			});
-		}
-
 		if (this?.contentType?.includes('json')) {
 			server.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
 				try {
@@ -305,13 +303,14 @@ export class Server {
 			server.setErrorHandler(this.errorHandler);
 		}
 
-		server.addHook('preHandler', async (req, res) => {
+		server.addHook('preHandler', (req, res, next) => {
 			if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
 				res.code(503).send({ error: 'Server too busy, try again later' });
 				return res;
 			}
 
 			this.activeRequests++;
+			next();
 		});
 
 		server.addHook('onRequest', (request, reply, next) => {
@@ -331,13 +330,27 @@ export class Server {
 
 			const context = Registry.context;
 			context.run({ requestId: request.id }, () => {
-				next();
+				if (Server?.onRequest) {
+					Server.onRequest(request, reply).then(() => {
+						next();
+					});
+				} else {
+					next();
+				}
 			});
 		});
 
-		server.addHook('onResponse', async (request, reply) => {
+		server.addHook('onSend', (request, reply, _, next) => {
 			Container.reset(request.id);
 			this.activeRequests--;
+
+			if (Server?.onResponse) {
+				Server.onResponse(request, reply).then(() => {
+					next();
+				});
+			} else {
+				next();
+			}
 		});
 
 		server.get('/', (req, res) => {

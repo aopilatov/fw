@@ -12,6 +12,7 @@ export type ServerResponse = FastifyReply<RouteGenericInterface, http2.Http2Secu
 
 export type ErrorHandler = (err: unknown, req: ServerRequest, res: ServerResponse) => Promise<void> | void;
 export type OnStartup = (name: string) => Promise<void> | void;
+export type RequestCallback = (req: ServerRequest, res: ServerResponse) => Promise<void>;
 
 export type MiddlewareHookEvent =
 	| 'onRequest'

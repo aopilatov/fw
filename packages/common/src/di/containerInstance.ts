@@ -1,5 +1,5 @@
 import { Registry } from './registry';
-import { AbstractConstructable, Constructable } from './types/types';
+import { AbstractConstructable, Constructable } from './types';
 
 export class ContainerInstance {
 	constructor(public readonly id: string) {}
@@ -20,5 +20,10 @@ export class ContainerInstance {
 	public getAction<T = unknown>(type: Constructable<T>): T;
 	public getAction<T = unknown>(type: AbstractConstructable<T>): T {
 		return Registry.get<T>(this, 'action', type);
+	}
+
+	public getSystem<T = unknown>(type: Constructable<T>): T;
+	public getSystem<T = unknown>(type: AbstractConstructable<T>): T {
+		return Registry.get<T>(this, 'system', type);
 	}
 }
