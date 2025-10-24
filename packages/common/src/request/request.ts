@@ -33,7 +33,7 @@ export class Request {
 		if (!this.defers.length) return;
 		const results = await Promise.allSettled(this.defers.map((item) => item()));
 		for (const result of results.filter((item) => item.status === 'rejected')) {
-			Container.get(Logger).get(this.id).error('defer failed', result.reason);
+			Container.get(Logger).error('defer failed', result.reason);
 		}
 	}
 

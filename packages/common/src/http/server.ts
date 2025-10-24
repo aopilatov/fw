@@ -359,12 +359,12 @@ export class Server {
 		}
 
 		if (this.isDev) {
-			Container.get(Logger).get().info(server.printRoutes());
+			Container.get(Logger).info(server.printRoutes());
 		}
 
 		server.listen({ host: this.host, port: this.port }, (err: Error | null, address: string) => {
 			if (err) throw new Error(`Can not start server: ${err?.message ?? 'not detected'}`);
-			Container.get(Logger).get().info(`Server started at ${address}`);
+			Container.get(Logger).info(`Server started at ${address}`);
 		});
 
 		return server;

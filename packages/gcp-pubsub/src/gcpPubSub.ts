@@ -54,15 +54,13 @@ export class GcpPubSub {
 			let topic = this.client.topic(id);
 
 			if (this.isEmulator && !(await topic.exists())[0]) {
-				Container.get(Logger).get().warn(`Topic ${id} does not exist. Creating...`);
+				Container.get(Logger).warning(`Topic ${id} does not exist. Creating...`);
 				await topic.create();
 				topic = this.client.topic(id);
 			}
 
 			this.topics[id] = { topic, subscriptions: new Map() };
-			Container.get(Logger)
-				.get()
-				.info(`Connect to topic ${id}`, { metadata: await topic.getMetadata() });
+			Container.get(Logger).info(`Connect to topic ${id}`, { metadata: await topic.getMetadata() });
 		}
 	}
 
@@ -76,14 +74,14 @@ export class GcpPubSub {
 
 				const dataBuffer = Buffer.from(JSON.stringify(data));
 				if (process.env?.NODE_ENV === 'test') {
-					Container.get(Logger).get().info('PubSub message', data);
+					Container.get(Logger).info('PubSub message', data);
 					return;
 				}
 
 				try {
 					await topic!.topic.publishMessage({ data: dataBuffer });
 				} catch (error) {
-					Container.get(Logger).get().error(`Failed to publish to topic '${id}' message`, {
+					Container.get(Logger).error(`Failed to publish to topic '${id}' message`, {
 						metadata: topic!.topic.getMetadata(),
 						error,
 					});
@@ -105,19 +103,15 @@ export class GcpPubSub {
 				}
 
 				if (topic!.subscriptions.has(name)) {
-					Container.get(Logger)
-						.get()
-						.warn(`Subscription ${name} already exists`, {
-							metadata: await topic!.topic.getMetadata(),
-						});
+					Container.get(Logger).warning(`Subscription ${name} already exists`, {
+						metadata: await topic!.topic.getMetadata(),
+					});
 
 					throw new GcpPubSubError(`Subscription ${name} already exists`);
 				}
 
 				if (this.isEmulator && !(await topic!.topic.subscription(name).exists())[0]) {
-					Container.get(Logger)
-						.get()
-						.warn(`Subscription ${name} does not exist. Creating...`, { metadata: await topic!.topic.getMetadata() });
+					Container.get(Logger).warning(`Subscription ${name} does not exist. Creating...`, { metadata: await topic!.topic.getMetadata() });
 
 					await topic!.topic.subscription(name).create(limitConfig ? { flowControl: limitConfig } : undefined);
 				}
@@ -137,20 +131,18 @@ export class GcpPubSub {
 								message.ack();
 							});
 						} catch (error: unknown) {
-							Container.get(Logger).get().error(`Failed to process message:`, { error });
+							Container.get(Logger).error(`Failed to process message:`, { error });
 							if (errorHandler) {
 								await errorHandler(message, error);
 							} else {
-								Container.get(Logger).get().fatal(`Ignore message:`, { error, message: message.data });
+								Container.get(Logger).fatal(`Ignore message:`, { error, message: message.data });
 								message.ack();
 							}
 						}
 					},
 				});
 
-				Container.get(Logger)
-					.get()
-					.info(`Subscribed to subscription ${name}`, { metadata: await topic!.topic.getMetadata() });
+				Container.get(Logger).info(`Subscribed to subscription ${name}`, { metadata: await topic!.topic.getMetadata() });
 
 				const subscription = topic!.subscriptions.get(name)!;
 				subscription.subscription.on('message', subscription.callback);
@@ -158,7 +150,7 @@ export class GcpPubSub {
 				return {
 					unsubscribe: async () => {
 						subscription.subscription.removeListener('message', subscription.callback);
-						Container.get(Logger).get().info(`Unsubscribed from subscription ${name}`, { metadata: topic!.topic.getMetadata() });
+						Container.get(Logger).info(`Unsubscribed from subscription ${name}`, { metadata: topic!.topic.getMetadata() });
 						topic!.subscriptions.delete(name);
 					},
 				};

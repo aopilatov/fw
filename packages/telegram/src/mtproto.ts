@@ -53,10 +53,10 @@ export class TelegramMtproto {
 					authKey,
 				});
 			} else {
-				Container.get(Logger).get().error(`Error starting bot ${name}`, { message: 'No auth key' });
+				Container.get(Logger).error(`Error starting bot ${name}`, { message: 'No auth key' });
 			}
 		} catch (error: unknown) {
-			Container.get(Logger).get().error(`Error starting bot ${name}`, { error });
+			Container.get(Logger).error(`Error starting bot ${name}`, { error });
 		}
 	}
 
@@ -95,7 +95,7 @@ export class TelegramMtproto {
 				}),
 			);
 		} catch (error: unknown) {
-			Container.get(Logger).get().error('mtproto getDialogs', { error });
+			Container.get(Logger).error('mtproto getDialogs', { error });
 			throw error;
 		}
 	}
@@ -122,11 +122,11 @@ export class TelegramMtproto {
 
 		try {
 			const result = await this.client.invoke(data);
-			Container.get(Logger).get().debug('mtproto sendMessage', { action: 'message sent' });
+			Container.get(Logger).debug('mtproto sendMessage', { action: 'message sent' });
 
 			return String(result['id'] || '0');
 		} catch (error: unknown) {
-			Container.get(Logger).get().error('mtproto sendMessage', { error });
+			Container.get(Logger).error('mtproto sendMessage', { error });
 			throw error;
 		}
 	}

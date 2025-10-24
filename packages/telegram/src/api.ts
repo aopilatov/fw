@@ -33,11 +33,11 @@ export class TelegramApi {
 
 		try {
 			const result = await this.bot.api[payload.cmd](payload.chatId, payload.message, payload.params);
-			Container.get(Logger).get().debug('api sendMessage', { action: 'message sent' });
+			Container.get(Logger).debug('api sendMessage', { action: 'message sent' });
 
 			return String(result.message_id);
 		} catch (error: unknown) {
-			Container.get(Logger).get().error('api sendMessage', { action: 'error', error });
+			Container.get(Logger).error('api sendMessage', { action: 'error', error });
 			throw error;
 		}
 	}

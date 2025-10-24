@@ -20,8 +20,6 @@ export class WorkerHelper {
 
 		Container.of(containerName);
 
-		const logger = Container.get(Logger).get(containerName);
-
 		if (onCreate) {
 			await onCreate(containerName);
 		}
@@ -29,14 +27,14 @@ export class WorkerHelper {
 		try {
 			result = await callback(containerName);
 		} catch (e: unknown) {
-			logger.error(prefix, e?.['message']);
+			Container.get(Logger).error(prefix, e?.['message']);
 			throw e;
 		} finally {
 			if (onDestroy) {
 				await onDestroy(containerName);
 			}
 
-			logger.info('finished');
+			Container.get(Logger).info('finished');
 			Container.reset(containerName);
 		}
 

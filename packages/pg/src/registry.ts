@@ -40,7 +40,7 @@ export class Pg {
 		});
 
 		this.pool.on('error', (error) => {
-			Container.get(Logger).get().error('pgError', { error });
+			Container.get(Logger).error('pgError', { error });
 		});
 
 		if (slavesConfigs && Object.keys(slavesConfigs).length) {
@@ -54,10 +54,10 @@ export class Pg {
 				});
 
 				this.readPools[slaveConfigName].on('error', (error) => {
-					Container.get(Logger).get().error('pgError', { error });
+					Container.get(Logger).error('pgError', { error });
 				});
 
-				Container.get(Logger).get().info('pg', { slave: slaveConfigName, action: 'connected' });
+				Container.get(Logger).info('pg', { slave: slaveConfigName, action: 'connected' });
 			}
 		}
 	}
