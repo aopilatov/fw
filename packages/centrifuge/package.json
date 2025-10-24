@@ -1,5 +1,5 @@
 {
-	"name": "@fw/centifuge",
+	"name": "@fw/centrifuge",
 	"version": "2.0.0",
 	"description": "Centrifuge lib",
 	"main": "./dist/index.js",
