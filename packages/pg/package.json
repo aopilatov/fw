@@ -1,6 +1,6 @@
 {
 	"name": "@fw/pg",
-	"version": "1.1.0",
+	"version": "2.0.0",
 	"description": "Postgres lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -8,7 +8,7 @@
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
-		"publish-gcp": "sh ./publish.sh",
+		"publish-gcp": "sh ./publish.sh"
 	},
 	"devDependencies": {
 		"@fw/common": "workspace:^"
