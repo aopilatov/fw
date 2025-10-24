@@ -7,13 +7,15 @@ import { PgClient } from './client';
 import { PgError } from './errors';
 import { PgConfig } from './types';
 
+import './helper';
+
 @SystemService()
 export class Pg {
 	private pool: Pool;
 	private readPools: Record<string, Pool> = {};
 
-	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: unknown }> = new Map();
-	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: unknown }> = new Map();
+	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgClient }> = new Map();
+	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgClient }> = new Map();
 
 	public init(name: string, config: PgConfig, slavesConfigs?: Record<string, PoolConfig>): void {
 		const rewriteConfig: Record<string, unknown> = {};
@@ -62,6 +64,14 @@ export class Pg {
 		}
 	}
 
+	public async getClient(slaveName?: string): Promise<PgClient> {
+		if (slaveName) {
+			return this.getReadClient(slaveName);
+		}
+
+		return this.getMasterClient();
+	}
+
 	public async destroy(): Promise<void> {
 		if (!this.pool) {
 			throw new PgError('Pool does not exist');
@@ -73,7 +83,7 @@ export class Pg {
 		}
 	}
 
-	public async createClient(containerId: string): Promise<void> {
+	public async createClient(containerId: string): Promise<{ poolClient: PoolClient; masterClient: PgClient }> {
 		if (!this.pool) {
 			throw new PgError('Pool does not exist');
 		}
@@ -85,9 +95,11 @@ export class Pg {
 		const poolClient = await this.pool.connect();
 		const masterClient = new PgClient(poolClient);
 		this.clients.set(containerId, { poolClient, masterClient });
+
+		return { masterClient, poolClient };
 	}
 
-	public async createReadClient(containerId: string, slaveName: string): Promise<void> {
+	public async createReadClient(containerId: string, slaveName: string): Promise<{ poolClient: PoolClient; readClient: PgClient }> {
 		const pool = this.readPools?.[slaveName];
 		if (!pool) {
 			throw new PgError('Pool does not exist');
@@ -100,6 +112,8 @@ export class Pg {
 		const poolClient = await pool.connect();
 		const readClient = new PgClient(poolClient, true);
 		this.readClients.set(`${containerId}/${slaveName}`, { poolClient, readClient });
+
+		return { readClient, poolClient };
 	}
 
 	public releaseClient(containerId: string): void {
@@ -126,5 +140,33 @@ export class Pg {
 			this.readClients.get(key)!.poolClient.release();
 			this.readClients.delete(key);
 		}
+	}
+
+	private async getMasterClient(): Promise<PgClient> {
+		const context = Registry.context.getStore() || {};
+		if (!context?.requestId) {
+			throw new PgError('Request id is not defined');
+		}
+
+		let client = this.clients.get(context.requestId);
+		if (!client) {
+			client = await this.createClient(context.requestId);
+		}
+
+		return client.masterClient;
+	}
+
+	private async getReadClient(slaveName: string): Promise<PgClient> {
+		const context = Registry.context.getStore() || {};
+		if (!context?.requestId) {
+			throw new PgError('Request id is not defined');
+		}
+
+		let client = this.readClients.get(`${context.requestId}/${slaveName}`);
+		if (!client) {
+			client = await this.createReadClient(context.requestId, slaveName);
+		}
+
+		return client.readClient;
 	}
 }
