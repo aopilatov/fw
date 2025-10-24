@@ -7,7 +7,7 @@ export function UseCentrifuge(): Func {
 			typeWrapper === undefined ||
 			typeWrapper.eagerType === undefined ||
 			typeWrapper.eagerType === Object ||
-			typeWrapper.eagerType?.['name'] !== 'Centrifugo'
+			typeWrapper.eagerType?.['name'] !== 'Centrifuge'
 		) {
 			throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
 		}

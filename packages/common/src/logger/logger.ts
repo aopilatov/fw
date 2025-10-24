@@ -6,14 +6,29 @@ import { GlobalService, Registry } from '../di';
 import { LoggerError } from './errors';
 import { LogConfig, LogCallback } from './types';
 
+configureSync({
+	sinks: {
+		console: getConsoleSink(),
+	},
+	loggers: [
+		{
+			category: [],
+			sinks: ['console'],
+			lowestLevel: 'info',
+		},
+	],
+});
+
 @GlobalService()
 export class Logger {
 	private appName: string;
 
 	public config(config: LogConfig): void {
+		if (this.appName) throw new LoggerError('Logger is already configured.');
 		this.appName = config.appName;
 
 		configureSync({
+			reset: true,
 			sinks: {
 				console: getConsoleSink({
 					formatter: config?.prettify ? prettyFormatter : undefined,
@@ -27,21 +42,6 @@ export class Logger {
 				},
 			],
 		});
-	}
-
-	private get() {
-		if (!this.appName) {
-			throw new LoggerError('Logger is not configured. Call config() method first.');
-		}
-
-		const logger = getLogger([this.appName]);
-
-		const contextStore = Registry.context.getStore();
-		if (contextStore) {
-			return logger.with(contextStore);
-		}
-
-		return logger;
 	}
 
 	public trace(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
@@ -72,5 +72,16 @@ export class Logger {
 	public fatal(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
 		// @ts-expect-error
 		this.get().fatal(message, ...values);
+	}
+
+	private get() {
+		const logger = getLogger([this.appName]);
+
+		const contextStore = Registry.context.getStore();
+		if (contextStore) {
+			return logger.with(contextStore);
+		}
+
+		return logger;
 	}
 }

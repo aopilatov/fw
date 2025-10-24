@@ -68,17 +68,17 @@ export class Server {
 
 	public static setName(name: string): Server {
 		this.name = name;
-		return this;
+		return Server;
 	}
 
 	public static setIsDev(isDev: boolean): Server {
 		this.isDev = isDev;
-		return this;
+		return Server;
 	}
 
 	public static addHook(hook: MiddlewareEvent): Server {
 		this.hooks.push(hook);
-		return this;
+		return Server;
 	}
 
 	public static addRoute(route: string, method: RouteMethod, func: RouteFunc): Server;
@@ -163,77 +163,77 @@ export class Server {
 		}
 
 		Server.routes.push(routeObj);
-		return this;
+		return Server;
 	}
 
 	public static setBodyLimit(bodyLimit: number): Server {
 		this.bodyLimit = bodyLimit;
-		return this;
+		return Server;
 	}
 
 	public static setHost(host: string): Server {
 		this.host = host;
-		return this;
+		return Server;
 	}
 
 	public static setPort(port: number): Server {
 		this.port = port;
-		return this;
+		return Server;
 	}
 
 	public static setMaxConcurrentRequests(maxConcurrentRequests: number): Server {
 		this.maxConcurrentRequests = maxConcurrentRequests;
-		return this;
+		return Server;
 	}
 
 	public static setCookieSecret(cookieSecret: string): Server {
 		this.cookieSecret = cookieSecret;
-		return this;
+		return Server;
 	}
 
 	public static setCookieDomain(cookieDomain: string): Server {
 		this.cookieDomain = cookieDomain;
-		return this;
+		return Server;
 	}
 
 	public static setCertificate(certificate: string): Server {
 		this.certificate = certificate;
-		return this;
+		return Server;
 	}
 
 	public static setCertificateKey(certificateKey: string): Server {
 		this.certificateKey = certificateKey;
-		return this;
+		return Server;
 	}
 
 	public static setErrorHandler(errorHandler: ErrorHandler): Server {
 		this.errorHandler = errorHandler;
-		return this;
+		return Server;
 	}
 
 	public static setOnStartup(onStartup: OnStartup): Server {
 		this.onStartup = onStartup;
-		return this;
+		return Server;
 	}
 
 	public static addOrigin(address: string): Server {
 		this.origin.push(address);
-		return this;
+		return Server;
 	}
 
 	public static addContentType(contentType: 'json'): Server {
 		this.contentType.push(contentType);
-		return this;
+		return Server;
 	}
 
 	public static addCustomIpHeader(headerName: string): Server {
 		this.customIpHeaders.push(headerName);
-		return this;
+		return Server;
 	}
 
 	public static addCustomCountryHeader(headerName: string): Server {
 		this.customCountryHeaders.push(headerName);
-		return this;
+		return Server;
 	}
 
 	public static async start(): Promise<ServerInstance> {
@@ -252,10 +252,8 @@ export class Server {
 		});
 
 		const server: ServerInstance = fastify({
-			ignoreTrailingSlash: true,
 			logger: false,
 			requestTimeout: 10000,
-			maxParamLength: 256,
 			bodyLimit: this.bodyLimit,
 			disableRequestLogging: true,
 			http2: true,
@@ -264,13 +262,15 @@ export class Server {
 				key: this.certificateKey,
 				cert: this.certificate,
 			},
+			routerOptions: {
+				ignoreTrailingSlash: true,
+				maxParamLength: 256,
+			},
 			genReqId: (req) => crypto.randomUUID(),
 		});
 
 		server.register(cookie, { secret: this.cookieSecret });
-		server.register(fastifyIp, {
-			order: this.customIpHeaders,
-		});
+		server.register(fastifyIp, !this.customIpHeaders.length ? {} : { order: this?.customIpHeaders });
 
 		if (this.origin.length) {
 			server.register(helmet);

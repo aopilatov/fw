@@ -9,7 +9,7 @@ import { CentrifugoApi } from './api';
 import { CentrifugeSchema } from './types';
 
 @SystemService()
-export class Centrifugo {
+export class Centrifuge {
 	private isTest: boolean = false;
 	private client: CentrifugoApi;
 
