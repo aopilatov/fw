@@ -45,3 +45,8 @@ export class Token<T> {
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type Func = Function;
+
+export type Context = {
+	requestId?: string;
+	correlationId?: string;
+};

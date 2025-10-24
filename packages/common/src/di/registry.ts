@@ -1,7 +1,8 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import { ContainerGlobalInstance } from './containerGlobalInstance';
 import { ContainerInstance } from './containerInstance';
 import { DIError, DIErrorNotFound } from './errors';
-import { ServiceInstance } from './types/services/serviceInstance';
 import {
 	AbstractConstructable,
 	Constructable,
@@ -12,9 +13,12 @@ import {
 	ServiceIdentifier,
 	ServiceOptions,
 	Token,
-} from './types/types';
+	Context,
+} from './types';
+import { ServiceInstance } from './types/services/serviceInstance';
 
 export class Registry {
+	private static readonly processContext: AsyncLocalStorage<Context> = new AsyncLocalStorage();
 	private static readonly globalInstance: ContainerGlobalInstance = new ContainerGlobalInstance();
 	private static readonly instances: ContainerInstance[] = [];
 
@@ -31,6 +35,10 @@ export class Registry {
 
 	public static setContainer(instance: ContainerInstance): void {
 		Registry.instances.push(instance);
+	}
+
+	public static get context() {
+		return Registry.processContext;
 	}
 
 	public static has<T>(instanceOf: InstanceOf, type: Constructable<T>): boolean;

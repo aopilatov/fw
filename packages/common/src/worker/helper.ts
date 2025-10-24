@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import { Container, GlobalService } from '../di';
+import { Container, GlobalService, Registry } from '../di';
 import { Logger } from '../logger';
 
 @GlobalService()
@@ -14,6 +14,10 @@ export class WorkerHelper {
 		let result: T;
 
 		const containerName = `${prefix}.${crypto.randomUUID()}`;
+
+		const context = Registry.context.getStore();
+		if (context) context.requestId = containerName;
+
 		Container.of(containerName);
 
 		const logger = Container.get(Logger).get(containerName);

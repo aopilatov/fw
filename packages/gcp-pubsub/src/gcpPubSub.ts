@@ -3,7 +3,7 @@ import process from 'node:process';
 
 import { ClientConfig, PubSub as GcpPubSubClient, Message } from '@google-cloud/pubsub';
 
-import { Container, Logger, SystemService } from '@fw/common';
+import { Container, Logger, Registry, SystemService } from '@fw/common';
 
 import { GcpPubSubError } from './errors';
 import { GcpPubSubConfig, GcpPubSubSchema, GcpPubSubTopicData, GcpPubSubLimitConfig } from './types';
@@ -127,15 +127,11 @@ export class GcpPubSub {
 					callback: async (message) => {
 						try {
 							const data: GcpPubSubSchema[T] = JSON.parse(Buffer.from(message.data).toString());
-							if (!('requestId' in data)) {
+							if (!('requestId' in data) || typeof data.requestId !== 'string') {
 								throw new GcpPubSubError(`Message does not have requestId`);
 							}
 
-							const context = Reflect.getMetadata('context', handler.constructor) as unknown as AsyncLocalStorage<unknown>;
-							if (!context) {
-								throw new GcpPubSubError(`Context is not defined`);
-							}
-
+							const context = Registry.context;
 							await context.run({ correlationId: data.requestId }, async () => {
 								await handler(data);
 								message.ack();

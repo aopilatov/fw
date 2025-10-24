@@ -10,7 +10,7 @@ import { fastify, FastifyContextConfig } from 'fastify';
 import fastifyIp from 'fastify-ip';
 import { UAParser, IResult } from 'ua-parser-js';
 
-import { Container } from '../di';
+import { Container, Registry } from '../di';
 import { Logger } from '../logger';
 
 import { certExample, keyExample } from './consts';
@@ -314,7 +314,7 @@ export class Server {
 			this.activeRequests++;
 		});
 
-		server.addHook('onRequest', async (request, reply) => {
+		server.addHook('onRequest', (request, reply, next) => {
 			let country!: string;
 			for (const header of this.customCountryHeaders) {
 				if (!country) country = request.headers?.[header] as string;
@@ -328,6 +328,11 @@ export class Server {
 			request.country = country;
 			request.referer = referer;
 			request.userAgent = UAParser(request.headers['user-agent']);
+
+			const context = Registry.context;
+			context.run({ requestId: request.id }, () => {
+				next();
+			});
 		});
 
 		server.addHook('onResponse', async (request, reply) => {
