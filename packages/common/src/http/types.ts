@@ -14,23 +14,6 @@ export type ErrorHandler = (err: unknown, req: ServerRequest, res: ServerRespons
 export type OnStartup = (name: string) => Promise<void> | void;
 export type RequestCallback = (req: ServerRequest, res: ServerResponse) => Promise<void>;
 
-export type MiddlewareHookEvent =
-	| 'onRequest'
-	| 'preParsing'
-	| 'preValidation'
-	| 'preHandler'
-	| 'preSerialization'
-	| 'onSend'
-	| 'onResponse'
-	| 'onError'
-	| 'onTimeout';
-
-export type MiddlewareCallback = (req: ServerRequest, res: ServerResponse) => Promise<void>;
-export interface MiddlewareEvent {
-	cb: MiddlewareCallback;
-	event: MiddlewareHookEvent;
-}
-
 export type Route = {
 	enabled: boolean;
 	route: string;

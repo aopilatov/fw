@@ -3,6 +3,8 @@ import { PoolClient, QueryConfig, QueryConfigValues, QueryResult, QueryResultRow
 import QueryStream from 'pg-query-stream';
 
 import { PgError } from './errors';
+import { BaseModel } from './model';
+import { KEYWORD_METADATA_TABLE } from './types';
 
 export class PgClient {
 	constructor(
@@ -24,85 +26,43 @@ export class PgClient {
 		return this.client.query(query);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	public async insert<R extends QueryResultRow = any, D extends Record<string, any> = any>(
-		table: string,
-		data: D,
-		types?: Partial<Record<keyof D, string>>,
-	): Promise<QueryResult<R>> {
+	public async insert(model: BaseModel): Promise<QueryResult> {
 		if (this?.isSlave) {
 			throw new PgError('Can not do insert in pg slave');
 		}
 
-		const entries = Object.entries(data).filter(([, value]) => value !== undefined);
-
-		const fields = entries.map(([key]) => `"${key}"`);
-		const values = entries.map(([, value]) => {
-			if (value instanceof DateTime) return value.toSQL();
-			return value;
-		});
-
-		const placeholders = entries.map(([key, _], index) => {
-			if (types && key in types) {
-				return `$${index + 1}::${types[key]}`;
-			}
-
-			return `$${index + 1}`;
-		});
+		const table: string = Reflect.getMetadata(KEYWORD_METADATA_TABLE, model.constructor);
+		const data = model.toSql();
 
 		const query = `
-			INSERT INTO "${table}" (${fields.join(', ')})
-			VALUES (${placeholders.join(', ')})
+			INSERT INTO "${table}" (${data.fields.join(', ')})
+			VALUES (${data.placeholders.join(', ')})
 			RETURNING *;
 		`;
 
-		return this.client.query(query, values);
+		return this.client.query(query, data.values);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	public async insertMany<R extends QueryResultRow = any, D extends Record<string, any> = any>(
-		table: string,
-		rows: D[],
-		types?: Partial<Record<keyof D, string>>,
-	): Promise<QueryResult<R>> {
+	public async insertMany(models: BaseModel[]): Promise<QueryResult> {
 		if (this?.isSlave) {
 			throw new PgError('Can not do insert in pg slave');
 		}
 
-		if (rows.length === 0) {
+		if (models.length === 0) {
 			throw new Error('Cannot insert zero rows.');
 		}
 
-		const keys = Object.keys(rows[0]).filter((key) => rows[0][key] !== undefined);
-		const fields = keys.map((key) => `"${key}"`);
-		const values: unknown[] = [];
-
-		const rowsPlaceholders = rows.map((row, rowIndex) => {
-			return (
-				'(' +
-				keys
-					.map((key, colIndex) => {
-						const value = row[key];
-						const transformed = value instanceof DateTime ? value.toSQL() : value;
-						values.push(transformed);
-
-						const paramIndex = rowIndex * keys.length + colIndex + 1;
-						const typeCast = types && types[key] ? `::${types[key]}` : '';
-						return `$${paramIndex}${typeCast}`;
-					})
-					.join(', ') +
-				')'
-			);
-		});
+		const table: string = Reflect.getMetadata(KEYWORD_METADATA_TABLE, models[0].constructor);
+		const data = BaseModel.manyToSql(models);
 
 		const query = `
-			INSERT INTO "${table}" (${fields.join(', ')})
+			INSERT INTO "${table}" (${data.fields.join(', ')})
 			VALUES
-			${rowsPlaceholders.join(', ')}
+			${data.placeholders.join(', ')}
 			RETURNING *;
 		`;
 
-		return this.client.query(query, values);
+		return this.client.query(query, data.values);
 	}
 
 	public async partition(table: string, name: string, start: DateTime, end: DateTime): Promise<void> {

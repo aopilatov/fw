@@ -3,7 +3,6 @@ import crypto from 'node:crypto';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import middie from '@fastify/middie';
 import { LogLevel } from '@logtape/logtape/src/level';
 import { set } from 'es-toolkit/compat';
 import { fastify, FastifyContextConfig } from 'fastify';
@@ -18,7 +17,6 @@ import { ForbiddenError } from './errors';
 import {
 	ErrorHandler,
 	GuardCallback,
-	MiddlewareEvent,
 	OnStartup,
 	RequestCallback,
 	Route,

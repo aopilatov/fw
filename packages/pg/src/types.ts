@@ -49,6 +49,7 @@ export type PgColumn = {
 	type: PgType;
 	isNullable?: boolean;
 	isArray?: boolean;
+	isPrimaryKey?: boolean;
 };
 
 export interface PgConfig extends PoolConfig {
