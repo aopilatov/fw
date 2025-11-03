@@ -26,12 +26,13 @@ export function Model(tableName: string, options?: { withHistory?: boolean; with
 }
 
 export function Column(config: PgColumn) {
-	return (target: unknown, propertyKey: string) => {
-		const map = Reflect.hasMetadata(KEYWORD_METADATA_COLUMNS, target!.constructor)
-			? (Reflect.getMetadata(KEYWORD_METADATA_COLUMNS, target!.constructor) as Map<string, PgColumn>)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	return (target: any, propertyName: string | symbol): void => {
+		const map = Reflect.hasMetadata(KEYWORD_METADATA_COLUMNS, target.constructor)
+			? (Reflect.getMetadata(KEYWORD_METADATA_COLUMNS, target.constructor) as Map<string, PgColumn>)
 			: new Map<string, PgColumn>();
 
-		map.set(propertyKey, config);
-		Reflect.defineMetadata(KEYWORD_METADATA_COLUMNS, map, target!.constructor);
+		map.set(propertyName.toString(), config);
+		Reflect.defineMetadata(KEYWORD_METADATA_COLUMNS, map, target.constructor);
 	};
 }

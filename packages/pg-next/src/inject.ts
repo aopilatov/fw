@@ -30,7 +30,7 @@ export function UsePg(): Func {
 					throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
 				}
 
-				return Registry.get(containerInstance, 'system', evaluatedLazyType);
+				return Registry.get(containerInstance, 'global', evaluatedLazyType);
 			},
 		});
 	};

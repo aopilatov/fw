@@ -1,6 +1,6 @@
-import { Request, Container, SystemService, UseRequest } from '@fw/common';
+import { UseRequest, Request, Container, SystemService } from '@fw/common';
 
-import { Pg } from './pg';
+import { Pg } from './registry';
 
 @SystemService()
 export class PgHelper {
