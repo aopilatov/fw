@@ -1,9 +1,10 @@
 import { isUUID } from 'class-validator';
 import { DateTime } from 'luxon';
 
-import { Constructable } from '@fw/common/src';
+import { Constructable, Container } from '@fw/common';
 
 import { PgError } from './errors';
+import { Pg } from './pg';
 import { KEYWORD_METADATA_TABLE, KEYWORD_METADATA_COLUMNS, PgColumn } from './types';
 
 import type { UUID } from 'node:crypto';
@@ -46,6 +47,8 @@ export class PgModel<C = unknown, M = unknown> {
 		}
 
 		this.columns = columnsMetadata;
+
+		Container.get(Pg).registerModel(this);
 	}
 
 	public oneToSql(record: C | M) {
