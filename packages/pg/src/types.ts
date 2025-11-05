@@ -1,4 +1,7 @@
-export class PgError extends Error {}
+import { PoolConfig } from 'pg';
+
+export const KEYWORD_METADATA_TABLE = 'table';
+export const KEYWORD_METADATA_COLUMNS = 'columns';
 
 export type PgType =
 	| 'BOOLEAN'
@@ -38,3 +41,15 @@ export type PgType =
 	| 'TIMESTAMP WITH TIME ZONE'
 	| 'TIMESTAMPZ'
 	| 'JSONB';
+
+export type PgColumn = {
+	name: string;
+	type: PgType;
+	isNullable?: boolean;
+	isArray?: boolean;
+	isPrimaryKey?: boolean;
+};
+
+export interface PgConfig extends PoolConfig {
+	isAlloyDb?: boolean;
+}

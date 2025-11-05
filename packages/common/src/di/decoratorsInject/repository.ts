@@ -1,7 +1,7 @@
 import { DIErrorInject } from '../errors';
 import { resolveToTypeWrapper } from '../helpers';
 import { Registry } from '../registry';
-import { Constructable, Func } from '../types/types';
+import { Constructable, Func } from '../types';
 
 export function UseRepository(typeFn?: (type?: never) => Constructable<unknown>): Func {
 	return function (target: object, propertyName: string | symbol, index?: number): void {

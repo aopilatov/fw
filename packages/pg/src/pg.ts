@@ -1,26 +1,47 @@
+import { GoogleAuth } from 'google-auth-library';
 import { Pool, PoolClient, PoolConfig } from 'pg';
 
-import { GlobalService, Container, Registry } from '@fw/common';
-import { Logger } from '@fw/common/src';
+import { Container, Logger, Registry, GlobalService } from '@fw/common';
 
-import { PgClient, PgClientRead } from './client';
-import { PgError } from './types';
+import { PgError } from './errors';
+import { PgModel } from './model';
+import { PgReadClient } from './pgClientRead';
+import { PgWriteClient } from './pgClientWrite';
+import { PgConfig } from './types';
+
+import './helper';
 
 @GlobalService()
 export class Pg {
 	private pool: Pool;
 	private readPools: Record<string, Pool> = {};
+	private readonly models: Map<string, PgModel> = new Map();
 
-	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgClient }> = new Map();
-	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgClientRead }> = new Map();
+	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgWriteClient }> = new Map();
+	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgReadClient }> = new Map();
 
-	public init(name: string, config: PoolConfig, slavesConfigs?: Record<string, PoolConfig>): void {
+	public init(name: string, config: PgConfig, slavesConfigs?: Record<string, PoolConfig>): void {
+		const rewriteConfig: Record<string, unknown> = {};
+
+		if (config?.isAlloyDb) {
+			const gcpAuth = new GoogleAuth({
+				scopes: ['https://www.googleapis.com/auth/alloydb.login'],
+			});
+
+			rewriteConfig['ssl'] = true;
+			rewriteConfig['rejectUnauthorized'] = false;
+			rewriteConfig['password'] = async () => {
+				return await gcpAuth.getAccessToken();
+			};
+		}
+
 		this.pool = new Pool({
 			application_name: name,
 			query_timeout: 12000,
 			idleTimeoutMillis: 30000,
 			keepAlive: true,
 			...config,
+			...rewriteConfig,
 		});
 
 		this.pool.on('error', (error) => {
@@ -46,6 +67,14 @@ export class Pg {
 		}
 	}
 
+	public async getClient(slaveName?: string): Promise<PgWriteClient | PgReadClient> {
+		if (slaveName) {
+			return this.getReadClient(slaveName);
+		}
+
+		return this.getMasterClient();
+	}
+
 	public async destroy(): Promise<void> {
 		if (!this.pool) {
 			throw new PgError('Pool does not exist');
@@ -67,7 +96,7 @@ export class Pg {
 		}
 	}
 
-	public async createClient(containerId: string): Promise<{ poolClient: PoolClient; masterClient: PgClient }> {
+	public async createClient(containerId: string): Promise<{ poolClient: PoolClient; masterClient: PgWriteClient }> {
 		if (!this.pool) {
 			throw new PgError('Pool does not exist');
 		}
@@ -77,13 +106,13 @@ export class Pg {
 		}
 
 		const poolClient = await this.pool.connect();
-		const masterClient = new PgClient(poolClient);
+		const masterClient = new PgWriteClient(poolClient);
 		this.clients.set(containerId, { poolClient, masterClient });
 
 		return { masterClient, poolClient };
 	}
 
-	public async createReadClient(containerId: string, slaveName: string): Promise<{ poolClient: PoolClient; readClient: PgClientRead }> {
+	public async createReadClient(containerId: string, slaveName: string): Promise<{ poolClient: PoolClient; readClient: PgReadClient }> {
 		const pool = this.readPools?.[slaveName];
 		if (!pool) {
 			throw new PgError('Pool does not exist');
@@ -94,7 +123,7 @@ export class Pg {
 		}
 
 		const poolClient = await pool.connect();
-		const readClient = new PgClientRead(poolClient);
+		const readClient = new PgReadClient(poolClient);
 		this.readClients.set(`${containerId}/${slaveName}`, { poolClient, readClient });
 
 		return { readClient, poolClient };
@@ -126,7 +155,24 @@ export class Pg {
 		}
 	}
 
-	public async getClient(): Promise<PgClient> {
+	public registerModel(model: PgModel): void {
+		if (this.models.has(model.table)) {
+			throw new PgError(`Model for table ${model.table} is already registered`);
+		}
+
+		this.models.set(model.table, model);
+	}
+
+	public getModel(table: string): PgModel {
+		const model = this.models.get(table);
+		if (!model) {
+			throw new PgError(`Model for table ${table} is not registered`);
+		}
+
+		return model;
+	}
+
+	private async getMasterClient(): Promise<PgWriteClient> {
 		const context = Registry.context.getStore() || {};
 		if (!context?.requestId) {
 			throw new PgError('Request id is not defined');
@@ -140,7 +186,7 @@ export class Pg {
 		return client.masterClient;
 	}
 
-	public async getReadClient(slaveName: string): Promise<PgClientRead> {
+	private async getReadClient(slaveName: string): Promise<PgReadClient> {
 		const context = Registry.context.getStore() || {};
 		if (!context?.requestId) {
 			throw new PgError('Request id is not defined');
