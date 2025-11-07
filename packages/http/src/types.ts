@@ -35,6 +35,7 @@ export interface EndpointReply<T = unknown> {
 		| {
 				name: string;
 				value: string;
+				domain?: string;
 				options?: {
 					ageInMs?: number;
 				};

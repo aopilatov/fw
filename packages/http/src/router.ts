@@ -66,10 +66,11 @@ export class Router {
 									});
 								}
 							} else {
+								const name = `${answer.cookies.name}-${answer?.cookies?.domain || this.cookiesDomain || 'local'}`;
 								if (answer.cookies.value === 'delete') {
-									res.clearCookie(`${answer.cookies.name}-${this.cookiesDomain || 'local'}`);
+									res.clearCookie(name);
 								} else {
-									res.setCookie(`${answer.cookies.name}-${this.cookiesDomain || 'local'}`, answer.cookies.value, {
+									res.setCookie(name, answer.cookies.value, {
 										httpOnly: true,
 										secure: true,
 										path: '/',
