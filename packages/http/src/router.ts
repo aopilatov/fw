@@ -74,7 +74,7 @@ export class Router {
 										httpOnly: true,
 										secure: true,
 										path: '/',
-										domain: this.cookiesDomain ?? undefined,
+										domain: answer?.cookies?.domain || this.cookiesDomain || undefined,
 										maxAge: answer.cookies?.options?.ageInMs || 3600,
 										sameSite: 'none',
 									});
