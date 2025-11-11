@@ -54,7 +54,6 @@ export class Server {
 	private static port: number = 3000;
 	private static maxConcurrentRequests?: number;
 	private static cookieSecret: string = 'unsafe';
-	private static cookieDomain?: string;
 	private static certificate: string = certExample;
 	private static certificateKey: string = keyExample;
 	private static errorHandler?: ErrorHandler;
@@ -183,11 +182,6 @@ export class Server {
 
 	public static setCookieSecret(cookieSecret: string): Server {
 		this.cookieSecret = cookieSecret;
-		return Server;
-	}
-
-	public static setCookieDomain(cookieDomain: string): Server {
-		this.cookieDomain = cookieDomain;
 		return Server;
 	}
 
@@ -411,13 +405,13 @@ export class Server {
 					if (answer?.headers) res.headers(answer.headers);
 					if (answer?.cookies) {
 						if (answer.cookies.value === 'delete') {
-							res.clearCookie(`${answer.cookies.name}-${Server?.cookieDomain || 'local'}`);
+							res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
 						} else {
-							res.setCookie(`${answer.cookies.name}-${Server?.cookieDomain || 'local'}`, answer.cookies.value, {
+							res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
 								httpOnly: true,
 								secure: true,
 								path: '/',
-								domain: Server?.cookieDomain ?? undefined,
+								domain: answer.cookies?.domain ?? undefined,
 								maxAge: answer.cookies?.options?.ageInMs || 3600,
 								sameSite: 'none',
 							});

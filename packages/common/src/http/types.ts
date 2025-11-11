@@ -30,6 +30,7 @@ export interface RouteReply<T = unknown> {
 	cookies?: {
 		name: string;
 		value: string;
+		domain?: string;
 		options?: {
 			ageInMs?: number;
 		};
