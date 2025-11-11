@@ -32,6 +32,7 @@ const defaultFormatter = (record: LogRecord): readonly unknown[] => {
 };
 
 configureSync({
+	reset: true,
 	sinks: {
 		console: getConsoleSink(),
 	},

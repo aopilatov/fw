@@ -1,6 +1,8 @@
 import { PoolClient, QueryConfig, QueryConfigValues, QueryResult, QueryResultRow } from 'pg';
 import QueryStream from 'pg-query-stream';
 
+import { PgModel } from './model';
+
 export class PgReadClient {
 	constructor(protected readonly client: PoolClient) {}
 
@@ -17,4 +19,12 @@ export class PgReadClient {
 		const query = new QueryStream(queryText, values);
 		return this.client.query(query);
 	}
+
+	// public async get(
+	// 	model: PgModel,
+	// 	options: {
+	// 		where: Record<string, unknown>;
+	// 		// in case we would like to add new params here
+	// 	},
+	// ): Promise<QueryResult> {}
 }

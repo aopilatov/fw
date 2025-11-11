@@ -187,6 +187,8 @@ export class Registry {
 			throw new DIError(serviceMetadata.id.toString());
 		}
 
+		serviceMetadata.value = value;
+
 		if (serviceMetadata.type) {
 			this.applyPropertyHandlers(caller, serviceMetadata.type, value as Record<string, unknown>);
 		}

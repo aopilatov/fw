@@ -1,124 +1,125 @@
-import { isUUID } from 'class-validator';
-import { DateTime } from 'luxon';
+import { z } from 'zod';
 
-import { Constructable, Container } from '@fw/common';
+import { Container } from '@fw/common';
 
+import { PgBuilder } from './builder';
 import { PgError } from './errors';
 import { Pg } from './pg';
-import { KEYWORD_METADATA_TABLE, KEYWORD_METADATA_COLUMNS, PgColumn } from './types';
+import { PgColumn, PgType } from './types';
 
-import type { UUID } from 'node:crypto';
-
-export function Column(config: PgColumn) {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (target: any, propertyName: string | symbol): void => {
-		const map = Reflect.hasMetadata(KEYWORD_METADATA_COLUMNS, target.constructor)
-			? (Reflect.getMetadata(KEYWORD_METADATA_COLUMNS, target.constructor) as Map<string, PgColumn>)
-			: new Map<string, PgColumn>();
-
-		map.set(propertyName.toString(), config);
-		Reflect.defineMetadata(KEYWORD_METADATA_COLUMNS, map, target.constructor);
-	};
-}
-
-export function Model(tableName: string) {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (target: any) => {
-		Reflect.defineMetadata(KEYWORD_METADATA_TABLE, tableName, target);
-		return target;
-	};
-}
-
-export class PgModel<C = unknown, M = unknown> {
-	public readonly table: string;
-	private readonly columns: Map<string, PgColumn> = new Map();
-
-	constructor(private readonly modelClass: Constructable<M>) {
-		const modelTable = Reflect.getMetadata(KEYWORD_METADATA_TABLE, modelClass);
-		if (!modelClass) {
-			throw new PgError(`Table in model ${modelTable} not found`);
-		}
-
-		this.table = modelTable;
-
-		const columnsMetadata = Reflect.getMetadata(KEYWORD_METADATA_COLUMNS, this.constructor) as Map<string, PgColumn>;
-		if (!columnsMetadata) {
-			throw new PgError('Class does not have columns metadata');
-		}
-
-		this.columns = columnsMetadata;
-
+export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject = z.ZodObject> {
+	constructor(
+		public readonly table: string,
+		private readonly metadata: Map<string, PgColumn>,
+		private readonly model: M,
+		private readonly creatable: C,
+	) {
 		Container.get(Pg).registerModel(this);
 	}
 
-	public oneToSql(record: C | M) {
-		const fields: string[] = [];
-		const values: unknown[] = [];
-		const placeholders: string[] = [];
+	public static async register<M extends z.ZodObject, C extends z.ZodObject>(table: string, model: M, creatable: C) {
+		const client = await Container.get(Pg).getClient();
+		const tableMetadata = await client.query(
+			`
+				SELECT column_name, data_type, udt_name, is_nullable
+				FROM information_schema.columns
+				WHERE table_schema = 'public'
+					AND table_name = $1
+				ORDER BY ordinal_position;
+			`,
+			[table],
+		);
 
-		const columns: string[] = Array.from(this.columns.keys());
-		for (const index in columns) {
-			const column = columns[index];
-			const columnMetadata = this.columns.get(column);
-			if (!columnMetadata) {
-				throw new PgError(`${column}: Class does not have column metadata`);
-			}
-
-			if (record[column] !== undefined) {
-				let value = record[column];
-				if (value instanceof DateTime) {
-					value = value.toSQL();
-				}
-
-				fields.push(column);
-				values.push(value);
-				placeholders.push(PgModel.getPlaceholder(Number(index), columnMetadata));
+		for (const column of Object.keys(model.shape)) {
+			const columnFromRows = tableMetadata.rows.find((row) => row.column_name === column);
+			if (!columnFromRows) {
+				throw new PgError(`Column ${column} not found in table ${table}`);
 			}
 		}
 
-		return { fields, values, placeholders };
+		const metadata = new Map<string, PgColumn>();
+
+		for (const row of tableMetadata.rows) {
+			const columnFromModel = Object.keys(model.shape).find((item) => item === row.column_name);
+			if (!columnFromModel) {
+				throw new PgError(`Column ${row.column_name} not found in model`);
+			}
+
+			const fieldSchema = model.shape[row.column_name];
+			const fieldType: PgType = row.udt_name.replace('_', '').toUpperCase();
+
+			metadata.set(row.column_name, {
+				name: row.column_name,
+				type: fieldType,
+				isNullable: row.is_nullable === 'YES',
+				isArray: row.data_type === 'ARRAY',
+				schema: fieldSchema,
+			});
+		}
+
+		return new PgModel<M, C>(table, metadata, model, creatable);
 	}
 
-	public manyToSql(records: (C | M)[]) {
+	public oneToSqlSave(record: z.infer<M>) {
+		return this.oneToSql(record);
+	}
+
+	public oneToSqlCreate(record: z.infer<C>) {
+		return this.oneToSql(record);
+	}
+
+	public manyToSqlCreate(records: z.infer<C>[]) {
 		if (records.length === 0) {
 			throw new Error('Cannot insert zero rows.');
 		}
 
 		const fields: string[] = [];
-		const values: unknown[][] = records.map(() => [] as unknown[]);
-		const placeholders: string[] = [];
+		const values: unknown[] = [];
+		const placeholders: string[][] = records.map(() => []);
 
-		const columns: string[] = Array.from(this.columns.keys());
-		for (const index in columns) {
-			const column = columns[index];
-			const columnMetadata = this.columns.get(column);
+		const columns: string[] = Array.from(this.metadata.keys());
+		let number = 0;
+
+		for (const columnIndex in columns) {
+			const column = columns[columnIndex];
+			const columnMetadata = this.metadata.get(column);
 			if (!columnMetadata) {
 				throw new PgError(`${column}: Class does not have column metadata`);
 			}
 
 			fields.push(column);
-			placeholders.push(PgModel.getPlaceholder(Number(index), columnMetadata));
+		}
 
-			for (const modelIndex in records) {
-				const model = records[modelIndex];
+		for (const modelIndex in records) {
+			const model = records[modelIndex];
 
-				let value = model[column];
-				if (value instanceof DateTime) {
-					value = value.toSQL();
+			for (const columnIndex in columns) {
+				const column = columns[columnIndex];
+				const value = model[column];
+
+				const columnMetadata = this.metadata.get(column);
+				if (!columnMetadata) {
+					throw new PgError(`${column}: Class does not have column metadata`);
 				}
 
-				values[Number(modelIndex)].push(value);
+				if (value !== undefined) {
+					placeholders[modelIndex].push(PgBuilder.getPlaceholder(number, columnMetadata));
+					values.push(value);
+					number++;
+				} else {
+					placeholders[modelIndex].push('DEFAULT');
+				}
 			}
 		}
 
 		return { fields, values, placeholders };
 	}
 
-	public oneFromSql(data: Record<string, unknown>): M {
-		const record = new this.modelClass();
+	public oneFromSql(data: Record<string, unknown>): z.infer<M> {
+		const record: Record<string, unknown> = {};
 
 		for (const [key, value] of Object.entries(data)) {
-			const columnMetadata = this.columns.get(key);
+			const columnMetadata = this.metadata.get(key);
 			if (!columnMetadata) {
 				throw new PgError(`${key}: Class does not have column metadata`);
 			}
@@ -126,22 +127,22 @@ export class PgModel<C = unknown, M = unknown> {
 			switch (columnMetadata.type) {
 				case 'BOOL':
 				case 'BOOLEAN':
-					this[key] = PgModel.getBoolean(key, value, columnMetadata);
+					record[key] = PgBuilder.getBoolean(key, value, columnMetadata);
 					break;
 
 				case 'CIDR':
 				case 'INET':
-					this[key] = PgModel.getString(key, value, columnMetadata);
+					record[key] = PgBuilder.getString(key, value, columnMetadata);
 					break;
 
 				case 'UUID':
-					this[key] = PgModel.getUuid(key, value, columnMetadata);
+					record[key] = PgBuilder.getUuid(key, value, columnMetadata);
 					break;
 
 				case 'TEXT':
 				case 'VARCHAR':
 				case 'CHARACTER VARYING':
-					this[key] = PgModel.getString(key, value, columnMetadata);
+					record[key] = PgBuilder.getString(key, value, columnMetadata);
 					break;
 
 				case 'INT2':
@@ -153,14 +154,14 @@ export class PgModel<C = unknown, M = unknown> {
 				case 'INTEGER':
 				case 'SERIAL4':
 				case 'SERIAL':
-					this[key] = PgModel.getInt(key, value, columnMetadata);
+					record[key] = PgBuilder.getInt(key, value, columnMetadata);
 					break;
 
 				case 'BIGINT':
 				case 'INT8':
 				case 'SERIAL8':
 				case 'BIGSERIAL':
-					this[key] = PgModel.getBigInt(key, value, columnMetadata);
+					record[key] = PgBuilder.getBigInt(key, value, columnMetadata);
 					break;
 
 				case 'FLOAT4':
@@ -169,11 +170,11 @@ export class PgModel<C = unknown, M = unknown> {
 				case 'DOUBLE PRECISION':
 				case 'NUMERIC':
 				case 'DECIMAL':
-					this[key] = PgModel.getFloat(key, value, columnMetadata);
+					record[key] = PgBuilder.getFloat(key, value, columnMetadata);
 					break;
 
 				case 'JSONB':
-					this[key] = PgModel.getJson(key, value, columnMetadata);
+					record[key] = PgBuilder.getJson(key, value, columnMetadata);
 					break;
 
 				case 'DATE':
@@ -185,122 +186,38 @@ export class PgModel<C = unknown, M = unknown> {
 				case 'TIMESTAMP WITHOUT TIME ZONE':
 				case 'TIMESTAMP WITH TIME ZONE':
 				case 'TIMESTAMPZ':
-					this[key] = PgModel.getDate(key, value, columnMetadata);
+					record[key] = PgBuilder.getDate(key, value, columnMetadata);
 					break;
 			}
 		}
 
-		return record;
+		return record as z.infer<M>;
 	}
 
-	private static getPlaceholder(index: number, columnMetadata: PgColumn): string {
-		if (columnMetadata?.isArray) {
-			return `$${index + 1}::${columnMetadata.type}[]`;
-		}
+	private oneToSql(record: object) {
+		const fields: string[] = [];
+		const values: unknown[] = [];
+		const placeholders: string[] = [];
 
-		switch (columnMetadata.type) {
-			case 'INET':
-				return `$${index + 1}::INET`;
-			case 'CIDR':
-				return `$${index + 1}::CIDR`;
-			default:
-				return `$${index + 1}`;
-		}
-	}
-
-	private static getBoolean(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => (typeof item === 'boolean' ? item : String(item).toLowerCase().trim() === 'true');
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getString(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-		const getValue = (item: unknown) => String(item);
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getUuid(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => {
-			if (isUUID(item)) {
-				return item as UUID;
+		const columns: string[] = Array.from(this.metadata.keys());
+		let number = 0;
+		for (const index in columns) {
+			const column = columns[index];
+			const columnMetadata = this.metadata.get(column);
+			if (!columnMetadata) {
+				throw new PgError(`${column}: Class does not have column metadata`);
 			}
 
-			throw new PgError(`${key}: Value is not UUID`);
-		};
+			if (record[column] !== undefined) {
+				const value = record[column];
 
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getInt(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => parseInt(String(item));
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getBigInt(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => String(item);
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getFloat(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => parseFloat(String(item));
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getJson(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => (typeof item === 'string' ? JSON.parse(item) : item);
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getDate(key: string, value: unknown, columnMetadata: PgColumn) {
-		const isNull = this.throwIfNullable(key, value, columnMetadata);
-		if (isNull) return null;
-
-		const getValue = (item: unknown) => (typeof item === 'string' ? DateTime.fromSQL(item) : DateTime.fromJSDate(item as Date));
-		return PgModel.getValue(key, value, columnMetadata, getValue);
-	}
-
-	private static getValue<Type>(
-		key: string,
-		value: unknown,
-		columnMetadata: PgColumn,
-		getValue: (item: unknown) => Type,
-	): never | Type | Type[] {
-		if (Array.isArray(value)) {
-			if (columnMetadata?.isArray) {
-				return value.map((item) => getValue(item));
+				fields.push(column);
+				values.push(value);
+				placeholders.push(PgBuilder.getPlaceholder(number, columnMetadata));
+				number++;
 			}
-
-			throw new PgError(`${key}: Column is not array`);
-		} else {
-			return getValue(value);
-		}
-	}
-
-	private static throwIfNullable(key: string, value: unknown, columnMetadata: PgColumn): boolean | never {
-		if (value === null) {
-			if (columnMetadata?.isNullable) return true;
-			throw new PgError(`${key}: Column is not nullable`);
 		}
 
-		return false;
+		return { fields, values, placeholders };
 	}
 }

@@ -8,14 +8,14 @@ import { PgModel } from './model';
 import { PgReadClient } from './pgClientRead';
 import { PgWriteClient } from './pgClientWrite';
 import { PgConfig } from './types';
-
-import './helper';
+import { PgView } from './view';
 
 @GlobalService()
 export class Pg {
 	private pool: Pool;
 	private readPools: Record<string, Pool> = {};
 	private readonly models: Map<string, PgModel> = new Map();
+	private readonly views: Map<string, PgView> = new Map();
 
 	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgWriteClient }> = new Map();
 	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgReadClient }> = new Map();
@@ -170,6 +170,23 @@ export class Pg {
 		}
 
 		return model;
+	}
+
+	public registerView(view: PgView): void {
+		if (this.views.has(view.name)) {
+			throw new PgError(`Model for view ${view.name} is already registered`);
+		}
+
+		this.views.set(view.name, view);
+	}
+
+	public getView(name: string): PgView {
+		const view = this.views.get(name);
+		if (!view) {
+			throw new PgError(`Model for view ${name} is not registered`);
+		}
+
+		return view;
 	}
 
 	private async getMasterClient(): Promise<PgWriteClient> {

@@ -83,6 +83,9 @@ importers:
       typescript-eslint:
         specifier: 8.31.0
         version: 8.31.0(eslint@9.25.1)(typescript@5.8.3)
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
     devDependencies:
       ts-node:
         specifier: ^10.9.2
@@ -176,28 +179,6 @@ importers:
         specifier: workspace:^
         version: link:../common
 
-  packages/pg-next:
-    dependencies:
-      '@types/pg':
-        specifier: 8.15.5
-        version: 8.15.5
-      dbmate:
-        specifier: 2.28.0
-        version: 2.28.0
-      google-auth-library:
-        specifier: ^10.4.1
-        version: 10.4.1
-      pg:
-        specifier: 8.16.3
-        version: 8.16.3
-      pg-query-stream:
-        specifier: 4.10.3
-        version: 4.10.3(pg@8.16.3)
-    devDependencies:
-      '@fw/common':
-        specifier: workspace:^
-        version: link:../common
-
   packages/telegram:
     dependencies:
       big-integer:
@@ -228,41 +209,6 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
-
-  '@dbmate/darwin-arm64@2.28.0':
-    resolution: {integrity: sha512-ZFjSS9ceCF6Gr87qUZ96Ow08P5k1l0kiMNZEwni66gVIPseZFDLLIeaHBGOaVbcDyevFBlrWQb8+LESOKmGsOw==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@dbmate/darwin-x64@2.28.0':
-    resolution: {integrity: sha512-7LA94QnQk9pnaC+tMOwHzx6wloZ160vGcW02mCz+6dHFdFk/Bha/zUgQFClg+wGlbqLKXqYfKLKYJnDjCEHa8w==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@dbmate/linux-arm64@2.28.0':
-    resolution: {integrity: sha512-K8XY3L0RB0qZ//Ct4ZuB5T3zwFGegbV2QUtvM7Dak5C178E0LQDl8uD2E6WURvV7oSpyjpCh9iq+4LoZ6N+EkQ==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@dbmate/linux-arm@2.28.0':
-    resolution: {integrity: sha512-mxZ5dd1RxiIGbh5l8Yc0r8/NXNRf0tz9UJ2hXZ63cmPoKwq9EQoPC6OChz3ahWO1/qdlgiCLy8iTeuvAl4RScA==}
-    cpu: [arm]
-    os: [linux]
-
-  '@dbmate/linux-ia32@2.28.0':
-    resolution: {integrity: sha512-O+3AZT/aVa4qD7FQ44MNBhx2enel3f+Ioh4IXDvDdPqbzm4wjNj8DlHF3d9hJ0AwfEuq27KWyPqZi9pRmxdM6Q==}
-    cpu: [ia32]
-    os: [linux]
-
-  '@dbmate/linux-x64@2.28.0':
-    resolution: {integrity: sha512-S4pV5HstfN/uLtrMcouxhn0zcErUGco98LWfzjY4Ylcv2pnc6rfzS6bBO6q0dHFbSPPZWOlsTY6Dw7WU4Uqcaw==}
-    cpu: [x64]
-    os: [linux]
-
-  '@dbmate/win32-x64@2.28.0':
-    resolution: {integrity: sha512-AmP8/XkG8vXGhE0UcTxIujJcNSHuUpEGBG4hzKoAdvcWUKX6CYGyskiWfhBBe13O8xUBmii+kQ79uG75NUYlTw==}
-    cpu: [x64]
-    os: [win32]
 
   '@eslint-community/eslint-utils@4.7.0':
     resolution: {integrity: sha512-dyybb3AcajC7uha6CvhdVRJqaKyn7w2YKqKyAN37NKYgZT36w+iRb0Dymmc5qEJ549c/S31cMMSFd75bteCpCw==}
@@ -856,10 +802,6 @@ packages:
   data-view-byte-offset@1.0.1:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
-
-  dbmate@2.28.0:
-    resolution: {integrity: sha512-kbJ+Aqna/SOsS86RuimX8X/qmo9ItG00EYMUfUQmo3xGoXBac4+PZwOYV0fVPIGakIRljNolhfJySkPAFjmZsA==}
-    hasBin: true
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -2402,6 +2344,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
 snapshots:
 
   '@bufbuild/protobuf@2.10.0': {}
@@ -2411,27 +2356,6 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
-
-  '@dbmate/darwin-arm64@2.28.0':
-    optional: true
-
-  '@dbmate/darwin-x64@2.28.0':
-    optional: true
-
-  '@dbmate/linux-arm64@2.28.0':
-    optional: true
-
-  '@dbmate/linux-arm@2.28.0':
-    optional: true
-
-  '@dbmate/linux-ia32@2.28.0':
-    optional: true
-
-  '@dbmate/linux-x64@2.28.0':
-    optional: true
-
-  '@dbmate/win32-x64@2.28.0':
-    optional: true
 
   '@eslint-community/eslint-utils@4.7.0(eslint@9.25.1)':
     dependencies:
@@ -3057,16 +2981,6 @@ snapshots:
       call-bound: 1.0.4
       es-errors: 1.3.0
       is-data-view: 1.0.2
-
-  dbmate@2.28.0:
-    optionalDependencies:
-      '@dbmate/darwin-arm64': 2.28.0
-      '@dbmate/darwin-x64': 2.28.0
-      '@dbmate/linux-arm': 2.28.0
-      '@dbmate/linux-arm64': 2.28.0
-      '@dbmate/linux-ia32': 2.28.0
-      '@dbmate/linux-x64': 2.28.0
-      '@dbmate/win32-x64': 2.28.0
 
   debug@2.6.9:
     dependencies:
@@ -4909,3 +4823,5 @@ snapshots:
   yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@4.1.12: {}
