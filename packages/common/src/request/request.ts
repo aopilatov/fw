@@ -17,7 +17,7 @@ export class Request {
 		return this.identifier;
 	}
 
-	public get isTransactional(): boolean {
+	public get transactional(): boolean {
 		return this.hasTransaction;
 	}
 
