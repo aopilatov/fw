@@ -1,4 +1,4 @@
-import { GoogleAuth } from 'google-auth-library';
+import { JWT } from 'google-auth-library';
 import { Pool, PoolClient, PoolConfig } from 'pg';
 
 import { Container, Logger, Registry, GlobalService } from '@fw/common';
@@ -25,9 +25,12 @@ export class Pg {
 	public init(name: string, config: PgConfig, slavesConfigs?: Record<string, PoolConfig>): void {
 		const rewriteConfig: Record<string, unknown> = {};
 
-		if (config?.isAlloyDb) {
-			const gcpAuth = new GoogleAuth({
-				scopes: ['https://www.googleapis.com/auth/alloydb.login'],
+		if (config?.alloyDb) {
+			const key = JSON.parse(config.alloyDb.key);
+			const gcpAuth = new JWT({
+				email: key.client_email,
+				key: key.private_key,
+				scopes: ['https://www.googleapis.com/auth/cloud-platform'],
 			});
 
 			rewriteConfig['ssl'] = true;

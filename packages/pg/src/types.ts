@@ -49,7 +49,9 @@ export type PgColumn = {
 };
 
 export interface PgConfig extends PoolConfig {
-	isAlloyDb?: boolean;
+	alloyDb?: {
+		key: string;
+	};
 }
 
 export enum PG_CONDITION {
