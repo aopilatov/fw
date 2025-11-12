@@ -23,6 +23,10 @@ export function Cache<T = unknown>(optionsOrServiceIdentifier?: ServiceOptions<T
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync']);
+		}
+
 		Registry.set<T>('cache', serviceMetadata);
 	};
 }

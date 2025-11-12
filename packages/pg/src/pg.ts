@@ -22,34 +22,6 @@ export class Pg {
 	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgWriteClient }> = new Map();
 	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgReadClient }> = new Map();
 
-	// public get() {
-	// 	const context = Registry.context.getStore() || {};
-	// 	if (!context?.requestId) {
-	// 		throw new PgError('Request id is not defined');
-	// 	}
-	//
-	// 	const client = this.clients.get(context.requestId);
-	// 	if (!client) {
-	// 		throw new PgError('Client is not created');
-	// 	}
-	//
-	// 	return client.masterClient;
-	// }
-	//
-	// public get clientRead(slaveName: string) {
-	// 	const context = Registry.context.getStore() || {};
-	// 	if (!context?.requestId) {
-	// 		throw new PgError('Request id is not defined');
-	// 	}
-	//
-	// 	const client = this.readClients.get(`${context.requestId}/${slaveName}`);
-	// 	if (!client) {
-	// 		throw new PgError('Client is not created');
-	// 	}
-	//
-	// 	return client.readClient;
-	// }
-
 	public init(name: string, config: PgConfig, slavesConfigs?: Record<string, PoolConfig>): void {
 		const rewriteConfig: Record<string, unknown> = {};
 

@@ -24,6 +24,7 @@ export class Registry {
 
 	private static readonly handlers: Handler[] = [];
 	private static services: ServiceInstance[] = [];
+	private static asyncRegistrators: (() => Promise<void>)[] = [];
 
 	public static getGlobalContainer(): ContainerGlobalInstance {
 		return Registry.globalInstance;
@@ -35,6 +36,14 @@ export class Registry {
 
 	public static setContainer(instance: ContainerInstance): void {
 		Registry.instances.push(instance);
+	}
+
+	public static addAsyncRegistrator(registrator: () => Promise<void>): void {
+		Registry.asyncRegistrators.push(registrator);
+	}
+
+	public static async registerAsync(): Promise<void> {
+		await Promise.all(Registry.asyncRegistrators.map((registrator) => registrator()));
 	}
 
 	public static get context() {

@@ -23,6 +23,10 @@ export function SystemService<T = unknown>(optionsOrServiceIdentifier?: ServiceO
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync']);
+		}
+
 		Registry.set<T>('system', serviceMetadata);
 	};
 }

@@ -23,6 +23,10 @@ export function Warehouse<T = unknown>(optionsOrServiceIdentifier?: ServiceOptio
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync']);
+		}
+
 		Registry.set<T>('warehouse', serviceMetadata);
 	};
 }
