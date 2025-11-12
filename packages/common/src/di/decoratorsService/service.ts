@@ -24,7 +24,7 @@ export function Service<T = unknown>(optionsOrServiceIdentifier?: ServiceOptions
 		}
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync']);
+			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 
 		Registry.set<T>('service', serviceMetadata);

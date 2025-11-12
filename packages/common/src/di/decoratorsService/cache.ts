@@ -24,7 +24,7 @@ export function Cache<T = unknown>(optionsOrServiceIdentifier?: ServiceOptions<T
 		}
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync']);
+			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 
 		Registry.set<T>('cache', serviceMetadata);
