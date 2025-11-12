@@ -10,6 +10,8 @@ import { PgWriteClient } from './pgClientWrite';
 import { PgConfig } from './types';
 import { PgView } from './view';
 
+import './helper';
+
 @GlobalService()
 export class Pg {
 	private pool: Pool;
