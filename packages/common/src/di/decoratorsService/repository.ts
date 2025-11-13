@@ -26,7 +26,6 @@ export function Repository<T = unknown>(optionsOrServiceIdentifier?: ServiceOpti
 		Registry.set<T>('repository', serviceMetadata);
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.get(Registry.getGlobalContainer(), 'repository', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 	};

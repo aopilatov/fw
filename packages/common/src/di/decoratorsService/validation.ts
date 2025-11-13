@@ -26,7 +26,6 @@ export function ValidationService<T = unknown>(optionsOrServiceIdentifier?: Serv
 		Registry.set<T>('validation', serviceMetadata);
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.get(Registry.getGlobalContainer(), 'validation', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 	};

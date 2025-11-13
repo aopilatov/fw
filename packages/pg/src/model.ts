@@ -60,6 +60,10 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		return new PgModel<M, C>(table, metadata, model, creatable);
 	}
 
+	public static get(table: string) {
+		return Container.get(Pg).getModel(table);
+	}
+
 	public oneToSqlSave(record: z.infer<M>) {
 		return this.oneToSql(record);
 	}

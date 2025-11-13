@@ -26,7 +26,6 @@ export function ActionService<T = unknown>(optionsOrServiceIdentifier?: ServiceO
 		Registry.set<T>('action', serviceMetadata);
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.get(Registry.getGlobalContainer(), 'action', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 	};

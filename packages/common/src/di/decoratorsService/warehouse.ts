@@ -26,7 +26,6 @@ export function Warehouse<T = unknown>(optionsOrServiceIdentifier?: ServiceOptio
 		Registry.set<T>('warehouse', serviceMetadata);
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.get(Registry.getGlobalContainer(), 'warehouse', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 	};

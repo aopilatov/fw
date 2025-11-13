@@ -26,7 +26,6 @@ export function PubSub<T = unknown>(optionsOrServiceIdentifier?: ServiceOptions<
 		Registry.set<T>('pubsub', serviceMetadata);
 
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
-			Registry.get(Registry.getGlobalContainer(), 'pubsub', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
 	};
