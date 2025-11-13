@@ -33,6 +33,19 @@ export class Container {
 		return this;
 	}
 
+	public static getSystem<T>(type: Constructable<T>): T;
+	public static getSystem<T>(type: AbstractConstructable<T>): T {
+		return Registry.getGlobalContainer().getSystem(type as never);
+	}
+
+	public static setSystem<T = unknown>(service: GlobalService<T>): Container;
+	public static setSystem<T = unknown>(type: Constructable<T>, value: T): Container;
+	public static setSystem<T = unknown>(type: AbstractConstructable<T>, value: T): Container;
+	public static setSystem<T = unknown>(service: GlobalService<T> | Constructable<T> | AbstractConstructable<T>, value?: unknown) {
+		Registry.getGlobalContainer().setSystem(service as never, value);
+		return this;
+	}
+
 	public static remove(identifierOrIdentifierArray: ServiceIdentifier | ServiceIdentifier[]): Container {
 		Registry.remove(identifierOrIdentifierArray);
 		return this;

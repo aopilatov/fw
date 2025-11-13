@@ -20,4 +20,21 @@ export class ContainerGlobalInstance {
 		Registry.set<T>('global', service, value);
 		return this;
 	}
+
+	public getSystem<T>(type: Constructable<T>): T;
+	public getSystem<T>(type: AbstractConstructable<T>): T {
+		return Registry.get<T>(this, 'system', type);
+	}
+
+	public setSystem<T = unknown>(service: GlobalService<T>): ContainerGlobalInstance;
+	public setSystem<T = unknown>(type: Constructable<T>, instance: T): ContainerGlobalInstance;
+	public setSystem<T = unknown>(type: AbstractConstructable<T>, instance: T): ContainerGlobalInstance;
+	public setSystem<T = unknown>(
+		service: Constructable<T> | AbstractConstructable<T> | GlobalService<T>,
+		value?: T,
+	): ContainerGlobalInstance {
+		// @ts-ignore
+		Registry.set<T>('system', service, value);
+		return this;
+	}
 }

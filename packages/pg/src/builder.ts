@@ -64,7 +64,7 @@ export class PgBuilder {
 		const isNull = this.throwIfNullable(key, value, columnMetadata);
 		if (isNull) return null;
 
-		const getValue = (item: unknown) => String(item);
+		const getValue = (item: unknown) => BigInt(String(item));
 		return PgBuilder.getValue(key, value, columnMetadata, getValue);
 	}
 
