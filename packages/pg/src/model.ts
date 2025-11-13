@@ -14,7 +14,7 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		private readonly model: M,
 		private readonly creatable: C,
 	) {
-		Container.get(Pg).registerModel(this);
+		Container.get(Pg).registerModel(this, true);
 	}
 
 	public static async register<M extends z.ZodObject, C extends z.ZodObject>(table: string, model: M, creatable: C) {

@@ -23,10 +23,11 @@ export function ValidationService<T = unknown>(optionsOrServiceIdentifier?: Serv
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		Registry.set<T>('validation', serviceMetadata);
+
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.get(Registry.getGlobalContainer(), 'validation', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
-
-		Registry.set<T>('validation', serviceMetadata);
 	};
 }

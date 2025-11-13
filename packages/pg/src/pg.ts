@@ -188,9 +188,13 @@ export class Pg {
 		}
 	}
 
-	public registerModel(model: PgModel): void {
+	public registerModel(model: PgModel, skipCheck: boolean = false): void {
 		if (this.models.has(model.table)) {
-			throw new PgError(`Model for table ${model.table} is already registered`);
+			if (skipCheck) {
+				return;
+			} else {
+				throw new PgError(`Model for table ${model.table} is already registered`);
+			}
 		}
 
 		this.models.set(model.table, model);

@@ -19,13 +19,13 @@ export function resolveToTypeWrapper(
 	}
 
 	if (!typeOrIdentifier && propertyName) {
-		const identifier = (Reflect as any).getMetadata('design:type', target, propertyName);
+		const identifier = Reflect.getMetadata('design:type', target, propertyName);
 
 		typeWrapper = { eagerType: identifier, lazyType: () => identifier };
 	}
 
 	if (!typeOrIdentifier && typeof index == 'number' && Number.isInteger(index)) {
-		const paramTypes: ServiceIdentifier[] = (Reflect as any).getMetadata('design:paramtypes', target, propertyName);
+		const paramTypes: ServiceIdentifier[] = Reflect.getMetadata('design:paramtypes', target, propertyName);
 		const identifier = paramTypes?.[index];
 
 		typeWrapper = { eagerType: identifier, lazyType: () => identifier };

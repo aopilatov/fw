@@ -23,10 +23,11 @@ export function GlobalService<T = unknown>(optionsOrServiceIdentifier?: ServiceO
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		Registry.set<T>('global', serviceMetadata);
+
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.get(Registry.getGlobalContainer(), 'global', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
-
-		Registry.set<T>('global', serviceMetadata);
 	};
 }

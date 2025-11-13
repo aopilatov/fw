@@ -23,10 +23,11 @@ export function Cache<T = unknown>(optionsOrServiceIdentifier?: ServiceOptions<T
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		Registry.set<T>('cache', serviceMetadata);
+
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.get(Registry.getGlobalContainer(), 'cache', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
-
-		Registry.set<T>('cache', serviceMetadata);
 	};
 }

@@ -23,10 +23,11 @@ export function Repository<T = unknown>(optionsOrServiceIdentifier?: ServiceOpti
 			serviceMetadata.factory = (optionsOrServiceIdentifier as BaseClass).factory || undefined;
 		}
 
+		Registry.set<T>('repository', serviceMetadata);
+
 		if (typeof targetConstructor.prototype['registerAsync'] === 'function') {
+			Registry.get(Registry.getGlobalContainer(), 'repository', targetConstructor);
 			Registry.addAsyncRegistrator(targetConstructor.prototype['registerAsync'].bind(targetConstructor.prototype));
 		}
-
-		Registry.set<T>('repository', serviceMetadata);
 	};
 }
