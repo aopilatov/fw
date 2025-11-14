@@ -1,5 +1,4 @@
-import { Constructable, Func, Registry, DIErrorInject, resolveToTypeWrapper } from '@fw/common';
-import { Container } from '@fw/common/src';
+import { Constructable, Func, Registry, DIErrorInject, resolveToTypeWrapper, Container } from '@fw/common';
 
 import { Pg } from './pg';
 

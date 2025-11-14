@@ -13,7 +13,7 @@ export class PgHelper {
 		if (this.request.transactional) {
 			return await func();
 		} else {
-			const client = (await Container.get(Pg).getOrCreateClient()) as PgWriteClient;
+			const client = (await Container.getSystem(Pg).getOrCreateClient()) as PgWriteClient;
 
 			try {
 				this.request.transactional = true;
@@ -35,7 +35,7 @@ export class PgHelper {
 			throw new Error('Lock requires transaction');
 		}
 
-		const client = (await Container.get(Pg).getOrCreateClient()) as PgWriteClient;
+		const client = (await Container.getSystem(Pg).getOrCreateClient()) as PgWriteClient;
 		await client.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2));', [namespace, key]);
 	}
 
@@ -44,7 +44,7 @@ export class PgHelper {
 			throw new Error('Lock requires transaction');
 		}
 
-		const client = (await Container.get(Pg).getOrCreateClient()) as PgWriteClient;
+		const client = (await Container.getSystem(Pg).getOrCreateClient()) as PgWriteClient;
 		await client.query('SELECT pg_advisory_lock(hashtext($1), hashtext($2));', [namespace, key]);
 	}
 
@@ -53,7 +53,7 @@ export class PgHelper {
 			throw new Error('Lock requires transaction');
 		}
 
-		const client = (await Container.get(Pg).getOrCreateClient()) as PgWriteClient;
+		const client = (await Container.getSystem(Pg).getOrCreateClient()) as PgWriteClient;
 		await client.query('SELECT pg_advisory_unlock(hashtext($1), hashtext($2));', [namespace, key]);
 	}
 }

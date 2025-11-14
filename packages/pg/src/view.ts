@@ -12,11 +12,11 @@ export class PgView {
 		public readonly name: string,
 		private readonly metadata: Map<string, PgColumn>,
 	) {
-		Container.get(Pg).registerView(this);
+		Container.getSystem(Pg).registerView(this);
 	}
 
 	public static async register(name: string) {
-		const client = await Container.get(Pg).getOrCreateClient();
+		const client = await Container.getSystem(Pg).getOrCreateClient();
 		const tableMetadata = await client.query(
 			`
 				SELECT column_name, data_type, udt_name, is_nullable

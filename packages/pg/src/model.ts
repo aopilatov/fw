@@ -14,11 +14,11 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		private readonly model: M,
 		private readonly creatable: C,
 	) {
-		Container.get(Pg).registerModel(this, true);
+		Container.getSystem(Pg).registerModel(this, true);
 	}
 
 	public static async register<M extends z.ZodObject, C extends z.ZodObject>(table: string, model: M, creatable: C) {
-		const client = await Container.get(Pg).getOrCreateClient();
+		const client = await Container.getSystem(Pg).getOrCreateClient();
 		const tableMetadata = await client.query(
 			`
 				SELECT column_name, data_type, udt_name, is_nullable
@@ -61,7 +61,7 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 	}
 
 	public static get(table: string) {
-		return Container.get(Pg).getModel(table);
+		return Container.getSystem(Pg).getModel(table);
 	}
 
 	public oneToSqlSave(record: z.infer<M>) {
