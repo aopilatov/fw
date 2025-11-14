@@ -1,7 +1,7 @@
 import { JWT } from 'google-auth-library';
 import { Pool, PoolClient, PoolConfig } from 'pg';
 
-import { Container, Logger, Registry, GlobalService } from '@fw/common';
+import { Container, Logger, Registry, SystemService } from '@fw/common';
 
 import { PgError } from './errors';
 import { PgModel } from './model';
@@ -12,7 +12,7 @@ import { PgView } from './view';
 
 import './helper';
 
-@GlobalService()
+@SystemService()
 export class Pg {
 	private pool: Pool;
 	private readPools: Record<string, Pool> = {};

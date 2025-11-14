@@ -1,4 +1,7 @@
 import { Constructable, Func, Registry, DIErrorInject, resolveToTypeWrapper } from '@fw/common';
+import { Container } from '@fw/common/src';
+
+import { Pg } from './pg';
 
 export function UsePg(): Func {
 	return function (target: object, propertyName: string | symbol, index?: number): void {
@@ -30,7 +33,7 @@ export function UsePg(): Func {
 					throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
 				}
 
-				return Registry.get(containerInstance, 'global', evaluatedLazyType);
+				return Registry.get(containerInstance, 'system', evaluatedLazyType);
 			},
 		});
 	};
@@ -67,6 +70,47 @@ export function UsePgHelper(): Func {
 				}
 
 				return Registry.get(containerInstance, 'system', evaluatedLazyType);
+			},
+		});
+	};
+}
+
+export function UsePgClient(slaveName?: string): Func {
+	return function (target: object, propertyName: string | symbol, index?: number): void {
+		const typeWrapper = resolveToTypeWrapper(undefined, target, propertyName, index);
+		if (
+			typeWrapper === undefined ||
+			typeWrapper.eagerType === undefined ||
+			typeWrapper.eagerType === Object ||
+			typeWrapper.eagerType?.['name'] !== 'PgHelper' ||
+			['PgWriteClient', 'PgReadClient'].includes(typeWrapper.eagerType?.['name'])
+		) {
+			throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
+		}
+
+		Registry.registerHandler({
+			object: target as Constructable<unknown>,
+			propertyName: propertyName as string,
+			index: index,
+			value: (containerInstance) => {
+				const targetService = Registry.getService(target.constructor);
+				if (targetService?.instanceOf && !['action'].includes(targetService.instanceOf)) {
+					throw new DIErrorInject(
+						`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()} -> PgHelper is allowed only in actions`,
+					);
+				}
+
+				const evaluatedLazyType = typeWrapper.lazyType();
+
+				if (evaluatedLazyType === undefined || evaluatedLazyType === Object) {
+					throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
+				}
+
+				if (slaveName) {
+					return Container.getSystem(Pg).getReadClient(slaveName);
+				}
+
+				return Container.getSystem(Pg).getMasterClient();
 			},
 		});
 	};
