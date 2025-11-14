@@ -81,8 +81,7 @@ export function UsePgClient(slaveName?: string): Func {
 			typeWrapper === undefined ||
 			typeWrapper.eagerType === undefined ||
 			typeWrapper.eagerType === Object ||
-			typeWrapper.eagerType?.['name'] !== 'PgHelper' ||
-			['PgWriteClient', 'PgReadClient'].includes(typeWrapper.eagerType?.['name'])
+			!['PgWriteClient', 'PgReadClient'].includes(typeWrapper.eagerType?.['name'])
 		) {
 			throw new DIErrorInject(`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()}`);
 		}
