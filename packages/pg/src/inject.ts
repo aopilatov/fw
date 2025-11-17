@@ -92,7 +92,7 @@ export function UsePgClient(slaveName?: string): Func {
 			index: index,
 			value: (containerInstance) => {
 				const targetService = Registry.getService(target.constructor);
-				if (targetService?.instanceOf && !['action'].includes(targetService.instanceOf)) {
+				if (targetService?.instanceOf && !['repository'].includes(targetService.instanceOf)) {
 					throw new DIErrorInject(
 						`${(target as Constructable<unknown>).constructor.name} -> ${propertyName.toString()} -> PgHelper is allowed only in actions`,
 					);

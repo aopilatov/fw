@@ -213,7 +213,10 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 			}
 
 			if (record[column] !== undefined) {
-				const value = record[column];
+				let value = record[column];
+				if (typeof record[column] === 'bigint') {
+					value = record[column].toString();
+				}
 
 				fields.push(column);
 				values.push(value);
