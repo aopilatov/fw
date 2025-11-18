@@ -193,6 +193,10 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 				case 'TIMESTAMPZ':
 					record[key] = PgBuilder.getDate(key, value, columnMetadata);
 					break;
+
+				default:
+					record[key] = PgBuilder.getString(key, value, columnMetadata);
+					break;
 			}
 		}
 
