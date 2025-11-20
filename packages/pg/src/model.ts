@@ -120,13 +120,19 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		return { fields, values, placeholders };
 	}
 
-	public oneFromSql(data: Record<string, unknown>): Partial<z.infer<M>> {
+	public oneFromSql(data: Record<string, unknown>, extendSchema?: PgColumn[]): Partial<z.infer<M>> {
 		const record: Record<string, unknown> = {};
 
 		for (const [key, value] of Object.entries(data)) {
-			const columnMetadata = this.metadata.get(key);
+			let columnMetadata = this.metadata.get(key);
 			if (!columnMetadata) {
-				throw new PgError(`${key}: Class does not have column metadata`);
+				if (extendSchema) {
+					columnMetadata = extendSchema.find((item) => item.name === key);
+				}
+
+				if (!columnMetadata) {
+					throw new PgError(`${key}: Class does not have column metadata`);
+				}
 			}
 
 			switch (columnMetadata.type) {
