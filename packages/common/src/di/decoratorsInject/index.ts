@@ -5,3 +5,4 @@ export * from './cache';
 export * from './warehouse';
 export * from './socket';
 export * from './pubsub';
+export * from './global';

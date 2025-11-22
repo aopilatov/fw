@@ -21,3 +21,9 @@ export type GcpPubSubLimitConfig = {
 	maxMessages: number;
 	maxExtensionMinutes: number;
 };
+
+export interface GcpPubSubMessage {
+	requestId: string;
+	type: string;
+	data: unknown;
+}
