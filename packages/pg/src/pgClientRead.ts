@@ -1,10 +1,16 @@
 import { PoolClient, QueryConfig, QueryConfigValues, QueryResult, QueryResultRow } from 'pg';
 import QueryStream from 'pg-query-stream';
 
-import { PgModel } from './model';
+import { Container } from '@fw/common';
+
+import { Pg } from './pg';
 
 export class PgReadClient {
-	constructor(protected readonly client: PoolClient) {}
+	protected client: PoolClient;
+
+	constructor(slaveName: string) {
+		this.client = Container.getSystem(Pg).getPoolClient(slaveName);
+	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public async query<R extends QueryResultRow = any, I = any[]>(
@@ -19,12 +25,4 @@ export class PgReadClient {
 		const query = new QueryStream(queryText, values);
 		return this.client.query(query);
 	}
-
-	// public async get(
-	// 	model: PgModel,
-	// 	options: {
-	// 		where: Record<string, unknown>;
-	// 		// in case we would like to add new params here
-	// 	},
-	// ): Promise<QueryResult> {}
 }

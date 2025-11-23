@@ -112,6 +112,10 @@ export class Registry {
 		};
 
 		this.services.push(newService);
+
+		if (instanceOf === 'global') {
+			Registry.getServiceValue(Registry.getGlobalContainer(), newService);
+		}
 	}
 
 	public static remove(identifierOrIdentifierArray: ServiceIdentifier | ServiceIdentifier[]): Registry {

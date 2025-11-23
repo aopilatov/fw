@@ -16,7 +16,7 @@ export class PgView {
 	}
 
 	public static async register(name: string) {
-		const client = await Container.getSystem(Pg).getOrCreateClient();
+		const client = Container.getSystem(Pg).getMasterClient();
 		const tableMetadata = await client.query(
 			`
 				SELECT column_name, data_type, udt_name, is_nullable

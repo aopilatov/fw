@@ -7,3 +7,4 @@ export * from './pgClientWrite';
 export * from './pgClientRead';
 export * from './view';
 export * from './helper';
+export * from './repository';

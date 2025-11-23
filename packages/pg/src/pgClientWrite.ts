@@ -1,12 +1,30 @@
 import { DateTime } from 'luxon';
-import { PoolClient, QueryResult } from 'pg';
+import { PoolClient, QueryConfig, QueryConfigValues, QueryResult, QueryResultRow } from 'pg';
+import QueryStream from 'pg-query-stream';
+
+import { Container } from '@fw/common';
 
 import { PgModel } from './model';
-import { PgReadClient } from './pgClientRead';
+import { Pg } from './pg';
 
-export class PgWriteClient extends PgReadClient {
-	constructor(protected readonly client: PoolClient) {
-		super(client);
+export class PgWriteClient {
+	protected client: PoolClient;
+
+	constructor() {
+		this.client = Container.getSystem(Pg).getPoolClient();
+	}
+
+	public async query<R extends QueryResultRow = any, I = any[]>(
+		queryTextOrConfig: string | QueryConfig<I>,
+		values?: QueryConfigValues<I>,
+	): Promise<QueryResult<R>> {
+		return this.client.query(queryTextOrConfig, values);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public getQueryStream(queryText: string, values?: any[]): NodeJS.ReadableStream {
+		const query = new QueryStream(queryText, values);
+		return this.client.query(query);
 	}
 
 	public async insertOne(model: PgModel, record: Record<string, unknown>): Promise<QueryResult> {

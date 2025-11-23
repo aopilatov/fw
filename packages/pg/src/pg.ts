@@ -19,8 +19,11 @@ export class Pg {
 	private readonly models: Map<string, PgModel> = new Map();
 	private readonly views: Map<string, PgView> = new Map();
 
-	private readonly clients: Map<string, { poolClient: PoolClient; masterClient: PgWriteClient }> = new Map();
-	private readonly readClients: Map<string, { poolClient: PoolClient; readClient: PgReadClient }> = new Map();
+	private readonly clients: Map<string, PoolClient> = new Map();
+	private readonly readClients: Map<string, PoolClient> = new Map();
+
+	private readonly hubMasters: Map<string, PgWriteClient> = new Map();
+	private readonly hubSlaves: Map<string, PgReadClient> = new Map();
 
 	public init(name: string, config: PgConfig, slavesConfigs?: Record<string, PoolConfig>): void {
 		const rewriteConfig: Record<string, unknown> = {};
@@ -72,12 +75,29 @@ export class Pg {
 		}
 	}
 
-	public async getOrCreateClient(slaveName?: string): Promise<PgWriteClient | PgReadClient> {
-		if (slaveName) {
-			return this.getOrCreateReadClient(slaveName);
+	public getPoolClient(slaveName?: string): PoolClient {
+		const context = Registry.context.getStore() || {};
+		if (!context?.requestId) {
+			throw new PgError('Request id is not defined');
 		}
 
-		return this.getOrCreateMasterClient();
+		let client: PoolClient | undefined;
+		if (slaveName) {
+			client = this.readClients.get(`${context.requestId}/${slaveName}`);
+		} else {
+			client = this.clients.get(context.requestId);
+		}
+
+		if (!client) {
+			throw new PgError('Pool client not found');
+		}
+
+		return client;
+	}
+
+	public getClient(slaveName?: string): PgReadClient | PgWriteClient {
+		if (slaveName) return this.getSlaveClient(slaveName);
+		return this.getMasterClient();
 	}
 
 	public getMasterClient(): PgWriteClient {
@@ -86,26 +106,28 @@ export class Pg {
 			throw new PgError('Request id is not defined');
 		}
 
-		const client = this.clients.get(context.requestId);
-		if (!client) {
-			throw new PgError('Client is not created');
+		let hubMaster = this.hubMasters.get(context.requestId);
+		if (!hubMaster) {
+			hubMaster = new PgWriteClient();
+			this.hubMasters.set(context.requestId, hubMaster);
 		}
 
-		return client.masterClient;
+		return hubMaster;
 	}
 
-	public getReadClient(slaveName: string): PgReadClient {
+	public getSlaveClient(slaveName: string): PgReadClient {
 		const context = Registry.context.getStore() || {};
 		if (!context?.requestId) {
 			throw new PgError('Request id is not defined');
 		}
 
-		const client = this.readClients.get(`${context.requestId}/${slaveName}`);
-		if (!client) {
-			throw new PgError('Client is not created');
+		let hubSlave = this.hubSlaves.get(context.requestId);
+		if (!hubSlave) {
+			hubSlave = new PgReadClient(slaveName);
+			this.hubSlaves.set(context.requestId, hubSlave);
 		}
 
-		return client.readClient;
+		return hubSlave;
 	}
 
 	public async destroy(): Promise<void> {
@@ -114,12 +136,12 @@ export class Pg {
 		}
 
 		for (const key of this.clients.keys()) {
-			this.clients.get(key)?.poolClient?.release();
+			this.clients.get(key)?.release(true);
 			this.clients.delete(key);
 		}
 
 		for (const key of this.readClients.keys()) {
-			this.readClients.get(key)?.poolClient?.release();
+			this.readClients.get(key)?.release(true);
 			this.readClients.delete(key);
 		}
 
@@ -129,7 +151,7 @@ export class Pg {
 		}
 	}
 
-	public async createClient(containerId: string): Promise<{ poolClient: PoolClient; masterClient: PgWriteClient }> {
+	public async createClient(containerId: string): Promise<PoolClient> {
 		if (!this.pool) {
 			throw new PgError('Pool does not exist');
 		}
@@ -139,13 +161,12 @@ export class Pg {
 		}
 
 		const poolClient = await this.pool.connect();
-		const masterClient = new PgWriteClient(poolClient);
-		this.clients.set(containerId, { poolClient, masterClient });
+		this.clients.set(containerId, poolClient);
 
-		return { masterClient, poolClient };
+		return poolClient;
 	}
 
-	public async createReadClient(containerId: string, slaveName: string): Promise<{ poolClient: PoolClient; readClient: PgReadClient }> {
+	public async createReadClient(containerId: string, slaveName: string): Promise<PoolClient> {
 		const pool = this.readPools?.[slaveName];
 		if (!pool) {
 			throw new PgError('Pool does not exist');
@@ -156,10 +177,9 @@ export class Pg {
 		}
 
 		const poolClient = await pool.connect();
-		const readClient = new PgReadClient(poolClient);
-		this.readClients.set(`${containerId}/${slaveName}`, { poolClient, readClient });
+		this.readClients.set(`${containerId}/${slaveName}`, poolClient);
 
-		return { readClient, poolClient };
+		return poolClient;
 	}
 
 	public releaseClient(containerId: string): void {
@@ -167,8 +187,9 @@ export class Pg {
 			throw new PgError('This container does not have client');
 		}
 
-		this.clients.get(containerId)!.poolClient.release();
+		this.clients.get(containerId)!.release(true);
 		this.clients.delete(containerId);
+		this.hubMasters.delete(containerId);
 	}
 
 	public releaseReadClient(containerId: string, slaveName: string): void {
@@ -176,14 +197,15 @@ export class Pg {
 			throw new PgError('This container does not have client');
 		}
 
-		this.readClients.get(`${containerId}/${slaveName}`)!.poolClient.release();
+		this.readClients.get(`${containerId}/${slaveName}`)!.release(true);
 		this.readClients.delete(`${containerId}/${slaveName}`);
+		this.hubSlaves.delete(`${containerId}/${slaveName}`);
 	}
 
 	public releaseAllReadClients(containerId: string): void {
 		const matchingKeys = [...this.readClients.keys()].filter((key) => key.startsWith(containerId));
 		for (const key of matchingKeys) {
-			this.readClients.get(key)!.poolClient.release();
+			this.readClients.get(key)!.release(true);
 			this.readClients.delete(key);
 		}
 	}
@@ -224,33 +246,5 @@ export class Pg {
 		}
 
 		return view;
-	}
-
-	private async getOrCreateMasterClient(): Promise<PgWriteClient> {
-		const context = Registry.context.getStore() || {};
-		if (!context?.requestId) {
-			throw new PgError('Request id is not defined');
-		}
-
-		let client = this.clients.get(context.requestId);
-		if (!client) {
-			client = await this.createClient(context.requestId);
-		}
-
-		return client.masterClient;
-	}
-
-	private async getOrCreateReadClient(slaveName: string): Promise<PgReadClient> {
-		const context = Registry.context.getStore() || {};
-		if (!context?.requestId) {
-			throw new PgError('Request id is not defined');
-		}
-
-		let client = this.readClients.get(`${context.requestId}/${slaveName}`);
-		if (!client) {
-			client = await this.createReadClient(context.requestId, slaveName);
-		}
-
-		return client.readClient;
 	}
 }

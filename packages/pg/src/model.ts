@@ -19,7 +19,7 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 
 	public static async register<M extends z.ZodObject, C extends z.ZodObject>(table: string, model: M, creatable: C) {
 		const schema = PgModel.modifySchema(model);
-		const client = await Container.getSystem(Pg).getOrCreateClient();
+		const client = Container.getSystem(Pg).getMasterClient();
 		const tableMetadata = await client.query(
 			`
 				SELECT column_name, data_type, udt_name, is_nullable
