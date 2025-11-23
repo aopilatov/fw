@@ -111,10 +111,13 @@ export class Registry {
 			...identifierOrServiceMetadata,
 		};
 
-		this.services.push(newService);
+		if (['global', 'system'].includes(instanceOf) && newService.value !== EMPTY_VALUE) {
+			this.services = this.services.filter((service) => service.id !== newService.id);
+		}
 
-		if (instanceOf === 'global') {
-			Registry.getServiceValue(Registry.getGlobalContainer(), newService);
+		const existingService = this.findService(instanceOf, newService.id);
+		if (!existingService) {
+			this.services.push(newService);
 		}
 	}
 
