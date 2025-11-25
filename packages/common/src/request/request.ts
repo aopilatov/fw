@@ -1,47 +1,44 @@
-import { Container, SystemService } from '../di';
+import { Container, Registry, SystemService, Context } from '../di';
 import { Logger } from '../logger';
 
-import { RequestContext } from './context';
-
-@SystemService({
-	factory: ({ id }: { id: string }) => new Request(id),
-})
+@SystemService()
 export class Request {
-	private hasTransaction: boolean = false;
-	private defers: (() => void | Promise<void>)[] = [];
-	private context: RequestContext = { test: 'test' };
-
-	constructor(private readonly identifier: string) {}
-
 	public get id(): string {
-		return this.identifier;
+		const requestId = this.context?.requestId;
+		if (!requestId) {
+			throw new Error('No requestId found');
+		}
+
+		return requestId;
+	}
+
+	private get context(): Context {
+		const store = Registry.context.getStore();
+		if (!store) {
+			throw new Error('No transactional context found');
+		}
+
+		return store;
 	}
 
 	public get transactional(): boolean {
-		return this.hasTransaction;
+		return this.context?.hasTransaction ?? false;
 	}
 
 	public set transactional(data: boolean) {
-		this.hasTransaction = data;
+		this.context.hasTransaction = data;
 	}
 
 	public addDefer(defer: () => void | Promise<void>): void {
-		this.defers.push(defer);
+		if (!this.context.defers) this.context.defers = [];
+		this.context.defers.push(defer);
 	}
 
 	public async executeDefers(): Promise<void> {
-		if (!this.defers.length) return;
-		const results = await Promise.allSettled(this.defers.map((item) => item()));
+		if (!this.context.defers || !this.context.defers.length) return;
+		const results = await Promise.allSettled(this.context.defers.map((item) => item()));
 		for (const result of results.filter((item) => item.status === 'rejected')) {
 			Container.get(Logger).error('defer failed', result.reason);
 		}
-	}
-
-	public setContextKey<K extends keyof RequestContext>(key: K, value: RequestContext[K]): void {
-		this.context[key] = value;
-	}
-
-	public getContextKey<K extends keyof RequestContext>(key: K): RequestContext[K] {
-		return this.context[key];
 	}
 }

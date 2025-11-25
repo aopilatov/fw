@@ -1,5 +1,6 @@
 import { configureSync, getConsoleSink, getLogger, LogRecord } from '@logtape/logtape';
 import { getPrettyFormatter } from '@logtape/pretty';
+import { omit } from 'es-toolkit/object';
 
 import { GlobalService, Registry } from '../di';
 
@@ -127,7 +128,7 @@ export class Logger {
 
 		const contextStore = Registry.context.getStore();
 		if (contextStore) {
-			return logger.with(contextStore);
+			return logger.with(omit(contextStore, ['defers', 'hasTransaction']));
 		}
 
 		return logger;
