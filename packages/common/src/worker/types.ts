@@ -16,31 +16,29 @@ export abstract class WorkerAbstraction {
 		let result: T;
 
 		const containerName = `${prefix}.${crypto.randomUUID()}`;
-
-		const context = Registry.context.getStore();
-		if (context) context.requestId = containerName;
-
 		Container.of(containerName);
 
-		if (onCreate) {
-			await onCreate(containerName);
-		}
-
-		try {
-			result = await callback(containerName);
-		} catch (e: unknown) {
-			Container.get(Logger).error(prefix, e?.['message']);
-			throw e;
-		} finally {
-			if (onDestroy) {
-				await onDestroy(containerName);
+		return await Registry.context.run({ requestId: containerName }, async () => {
+			if (onCreate) {
+				await onCreate(containerName);
 			}
 
-			Container.get(Logger).info('finished');
-			Container.reset(containerName);
-		}
+			try {
+				result = await callback(containerName);
+			} catch (e: unknown) {
+				Container.get(Logger).error(prefix, e?.['message']);
+				throw e;
+			} finally {
+				if (onDestroy) {
+					await onDestroy(containerName);
+				}
 
-		return result;
+				Container.get(Logger).info('finished');
+				Container.reset(containerName);
+			}
+
+			return result;
+		});
 	}
 }
 
