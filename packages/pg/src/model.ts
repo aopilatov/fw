@@ -207,7 +207,12 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		}
 
 		const partial = this.model.partial();
-		return partial.parse(record) as Partial<z.infer<M>>;
+		const result = partial.parse(record) as Partial<z.infer<M>>;
+
+		return {
+			...record,
+			...result,
+		};
 	}
 
 	private oneToSql(record: object) {
