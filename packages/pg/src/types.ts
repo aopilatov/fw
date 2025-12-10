@@ -45,7 +45,7 @@ export type PgColumn = {
 	type: PgType | string;
 	isNullable?: boolean;
 	isArray?: boolean;
-	schema: z.ZodType;
+	schema: z.ZodType | z.ZodString | z.ZodNumber | z.ZodBoolean | z.ZodUnknown;
 };
 
 export interface PgConfig extends PoolConfig {

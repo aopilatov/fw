@@ -6,7 +6,7 @@ import { GlobalService, Registry } from '../di';
 
 import { LogConfig, LogCallback } from './types';
 
-const defaultFormatter = (record: LogRecord): readonly unknown[] => {
+const defaultFormatter = (record: LogRecord): string => {
 	const msg: string[] = [];
 	const values: unknown[] = [];
 
@@ -14,22 +14,23 @@ const defaultFormatter = (record: LogRecord): readonly unknown[] => {
 		if (typeof record.message[i] === 'string') {
 			msg.push(record.message[i] as string);
 		} else {
-			msg.push('%o');
 			values.push(record.message[i]);
 		}
 	}
 
 	if (Object.keys(record.properties).length > 0) {
-		msg.push('%o');
 		values.push(record.properties);
 	}
 
-	return [
-		`${record.level.toUpperCase()} %c${record.category.join('\xb7')} %c${msg.join(' ')}`,
-		'color: gray;',
-		'color: default;',
-		...values,
-	];
+	let output = `${record.level.toUpperCase()} %c${record.category.join('\xb7')} ${msg.join(' ')}`;
+	if (values?.length) {
+		output += ': ';
+		for (const value of values) {
+			output += JSON.stringify(value) + ' ';
+		}
+	}
+
+	return output;
 };
 
 configureSync({
