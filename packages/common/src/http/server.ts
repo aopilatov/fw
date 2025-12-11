@@ -291,53 +291,69 @@ export class Server {
 		}
 
 		server.addHook('preHandler', (req, res, next) => {
-			if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
-				res.code(503).send({ error: 'Server too busy, try again later' });
-				return res;
-			}
+			if (req.method === 'OPTIONS') {
+				next();
+			} else {
+				if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
+					res.code(503).send({ error: 'Server too busy, try again later' });
+					return res;
+				}
 
-			this.activeRequests++;
-			next();
+				this.activeRequests++;
+				next();
+			}
 		});
 
 		server.addHook('onRequest', (request, reply, next) => {
-			let country!: string;
-			for (const header of this.customCountryHeaders) {
-				if (!country) country = request.headers?.[header] as string;
+			if (request.method === 'OPTIONS') {
+				next();
+			} else {
+				let country!: string;
+				for (const header of this.customCountryHeaders) {
+					if (!country) country = request.headers?.[header] as string;
+				}
+				if (!country) country = 'zz';
+
+				let referer = request.headers?.['origin'];
+				if (!referer) referer = request.headers?.['referer'];
+				if (!referer) referer = undefined;
+
+				request.country = country;
+				request.referer = referer;
+				request.userAgent = UAParser(request.headers['user-agent']);
+
+				const context = Registry.context;
+				context.run({ requestId: request.id }, () => {
+					if (Server?.onRequest) {
+						Server.onRequest(request, reply).then(() => {
+							next();
+						});
+					} else {
+						next();
+					}
+				});
 			}
-			if (!country) country = 'zz';
+		});
 
-			let referer = request.headers?.['origin'];
-			if (!referer) referer = request.headers?.['referer'];
-			if (!referer) referer = undefined;
+		server.addHook('onResponse', (request, reply, next) => {
+			if (request.method === 'OPTIONS') {
+				next();
+			} else {
+				Container.reset(request.id);
+				this.activeRequests--;
 
-			request.country = country;
-			request.referer = referer;
-			request.userAgent = UAParser(request.headers['user-agent']);
-
-			const context = Registry.context;
-			context.run({ requestId: request.id }, () => {
-				if (Server?.onRequest) {
-					Server.onRequest(request, reply).then(() => {
+				if (Server?.onResponse) {
+					Server.onResponse(request, reply).then(() => {
 						next();
 					});
 				} else {
 					next();
 				}
-			});
+			}
 		});
 
-		server.addHook('onSend', (request, reply, _, next) => {
-			Container.reset(request.id);
-			this.activeRequests--;
-
-			if (Server?.onResponse) {
-				Server.onResponse(request, reply).then(() => {
-					next();
-				});
-			} else {
-				next();
-			}
+		server.options('*', (req, res) => {
+			res.code(204).send();
 		});
 
 		server.get('/', (req, res) => {
