@@ -357,10 +357,6 @@ export class Server {
 			}
 		});
 
-		server.all('*', async (req, res) => {
-			res.code(204).send();
-		});
-
 		server.get('/', (req, res) => {
 			this.isServerReady(req, res);
 		});
