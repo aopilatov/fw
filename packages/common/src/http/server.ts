@@ -335,7 +335,7 @@ export class Server {
 			}
 		});
 
-		server.addHook('onSend', (request, reply, _, next) => {
+		server.addHook('onResponse', (request, reply, next) => {
 			if (request.method === 'OPTIONS') {
 				next();
 			} else {
@@ -353,29 +353,7 @@ export class Server {
 		});
 
 		server.options('*', (req, res) => {
-			const origin = req.headers.origin;
-			if (!origin) {
-				res.code(403).send();
-				return res;
-			}
-
-			if (this.origin && !this.origin.includes(origin!)) {
-				res.code(403).send();
-				return res;
-			}
-
-			const methods = ['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-			if (this.origin && !methods.includes(req.method)) {
-				res.code(403).send();
-				return res;
-			}
-
-			res.header('Access-Control-Allow-Origin', origin);
-			res.header('Access-Control-Allow-Credentials', 'true');
-			res.header('Access-Control-Allow-Methods', methods.join(','));
-
 			res.code(204).send();
-			return res;
 		});
 
 		server.get('/', (req, res) => {
