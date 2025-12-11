@@ -295,49 +295,38 @@ export class Server {
 			server.setErrorHandler(this.errorHandler);
 		}
 
-		server.addHook('preHandler', (req, res, next) => {
-			if (req.method === 'OPTIONS') {
-				return res.send();
-			}
-
+		server.addHook('onRequest', (request, reply, next) => {
 			if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
-				res.code(503).send({ error: 'Server too busy, try again later' });
-				return res;
+				reply.code(503).send({ error: 'Server too busy, try again later' });
+				return reply;
 			}
 
 			this.activeRequests++;
-			next();
-		});
 
-		server.addHook('onRequest', (request, reply, next) => {
-			if (request.raw.method === 'OPTIONS') {
-				next();
-			} else {
-				let country!: string;
-				for (const header of this.customCountryHeaders) {
-					if (!country) country = request.headers?.[header] as string;
-				}
-				if (!country) country = 'zz';
-
-				let referer = request.headers?.['origin'];
-				if (!referer) referer = request.headers?.['referer'];
-				if (!referer) referer = undefined;
-
-				request.country = country;
-				request.referer = referer;
-				request.userAgent = UAParser(request.headers['user-agent']);
-
-				const context = Registry.context;
-				context.run({ requestId: request.id }, () => {
-					if (Server?.onRequest) {
-						Server.onRequest(request, reply).then(() => {
-							next();
-						});
-					} else {
-						next();
-					}
-				});
+			let country!: string;
+			for (const header of this.customCountryHeaders) {
+				if (!country) country = request.headers?.[header] as string;
 			}
+			if (!country) country = 'zz';
+
+			let referer = request.headers?.['origin'];
+			if (!referer) referer = request.headers?.['referer'];
+			if (!referer) referer = undefined;
+
+			request.country = country;
+			request.referer = referer;
+			request.userAgent = UAParser(request.headers['user-agent']);
+
+			const context = Registry.context;
+			context.run({ requestId: request.id }, () => {
+				if (Server?.onRequest && request.raw.method !== 'OPTIONS') {
+					Server.onRequest(request, reply).then(() => {
+						next();
+					});
+				} else {
+					next();
+				}
+			});
 		});
 
 		server.addHook('onSend', (request, reply, _, next) => {
