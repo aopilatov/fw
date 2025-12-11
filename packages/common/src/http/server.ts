@@ -272,11 +272,6 @@ export class Server {
 
 		if (this.origin.length) {
 			server.register(helmet);
-			server.register(cors, {
-				origin: this.origin,
-				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-				credentials: true,
-			});
 		}
 
 		if (this?.contentType?.includes('json')) {
