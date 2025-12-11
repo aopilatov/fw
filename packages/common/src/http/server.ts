@@ -296,6 +296,10 @@ export class Server {
 		}
 
 		server.addHook('preHandler', (req, res, next) => {
+			if (req.method === 'OPTIONS') {
+				return next();
+			}
+
 			if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
 				res.code(503).send({ error: 'Server too busy, try again later' });
 				return res;
@@ -306,6 +310,10 @@ export class Server {
 		});
 
 		server.addHook('onRequest', (request, reply, next) => {
+			if (request.method === 'OPTIONS') {
+				return next();
+			}
+
 			let country!: string;
 			for (const header of this.customCountryHeaders) {
 				if (!country) country = request.headers?.[header] as string;
@@ -333,6 +341,10 @@ export class Server {
 		});
 
 		server.addHook('onSend', (request, reply, _, next) => {
+			if (request.method === 'OPTIONS') {
+				return next();
+			}
+
 			Container.reset(request.id);
 			this.activeRequests--;
 
