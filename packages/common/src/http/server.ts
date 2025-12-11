@@ -272,11 +272,6 @@ export class Server {
 
 		if (this.origin.length) {
 			server.register(helmet);
-			server.register(cors, {
-				origin: this.origin,
-				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-				credentials: true,
-			});
 		}
 
 		if (this?.contentType?.includes('json')) {
@@ -355,6 +350,32 @@ export class Server {
 					next();
 				}
 			}
+		});
+
+		server.options('*', (req, res) => {
+			const origin = req.headers.origin;
+			if (!origin) {
+				res.code(403).send();
+				return res;
+			}
+
+			if (this.origin && !this.origin.includes(origin!)) {
+				res.code(403).send();
+				return res;
+			}
+
+			const methods = ['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+			if (this.origin && !methods.includes(req.method)) {
+				res.code(403).send();
+				return res;
+			}
+
+			res.header('Access-Control-Allow-Origin', origin);
+			res.header('Access-Control-Allow-Credentials', 'true');
+			res.header('Access-Control-Allow-Methods', methods.join(','));
+
+			res.code(204).send();
+			return res;
 		});
 
 		server.get('/', (req, res) => {
