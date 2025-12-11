@@ -272,6 +272,11 @@ export class Server {
 
 		if (this.origin.length) {
 			server.register(helmet);
+			server.register(cors, {
+				origin: this.origin,
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+				credentials: true,
+			});
 		}
 
 		if (this?.contentType?.includes('json')) {
@@ -292,20 +297,20 @@ export class Server {
 
 		server.addHook('preHandler', (req, res, next) => {
 			if (req.method === 'OPTIONS') {
-				next();
-			} else {
-				if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
-					res.code(503).send({ error: 'Server too busy, try again later' });
-					return res;
-				}
-
-				this.activeRequests++;
-				next();
+				return res.send();
 			}
+
+			if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
+				res.code(503).send({ error: 'Server too busy, try again later' });
+				return res;
+			}
+
+			this.activeRequests++;
+			next();
 		});
 
 		server.addHook('onRequest', (request, reply, next) => {
-			if (request.method === 'OPTIONS') {
+			if (request.raw.method === 'OPTIONS') {
 				next();
 			} else {
 				let country!: string;
@@ -335,10 +340,9 @@ export class Server {
 			}
 		});
 
-		server.addHook('onResponse', (request, reply, next) => {
-			if (request.method === 'OPTIONS') {
-				next();
-			} else {
+		server.addHook('onSend', (request, reply, _, next) => {
+			const context = Registry.context.getStore();
+			if (context && request.raw.method !== 'OPTIONS') {
 				Container.reset(request.id);
 				this.activeRequests--;
 
@@ -349,11 +353,9 @@ export class Server {
 				} else {
 					next();
 				}
+			} else {
+				next();
 			}
-		});
-
-		server.options('*', (req, res) => {
-			res.code(204).send();
 		});
 
 		server.get('/', (req, res) => {
