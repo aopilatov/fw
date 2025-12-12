@@ -1,6 +1,6 @@
 {
 	"name": "@fw/common",
-	"version": "2.0.110",
+	"version": "2.0.111",
 	"description": "Common lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -19,6 +19,7 @@
 		"fastify": "5.6.1",
 		"fastify-ip": "2.0.0",
 		"node-cron": "4.2.1",
+		"psl": "^1.15.0",
 		"ua-parser-js": "^2.0.6"
 	}
 }

@@ -7,6 +7,7 @@ import { LogLevel } from '@logtape/logtape/src/level';
 import { set } from 'es-toolkit/compat';
 import { fastify, FastifyContextConfig } from 'fastify';
 import fastifyIp from 'fastify-ip';
+import psl from 'psl';
 import { UAParser, IResult } from 'ua-parser-js';
 
 import { Container, Registry } from '../di';
@@ -406,6 +407,14 @@ export class Server {
 					const answer = await route.func(req, res);
 					if (answer?.headers) res.headers(answer.headers);
 					if (answer?.cookies) {
+						let rootDomain: string | undefined = undefined;
+						if (answer.cookies?.domain) {
+							const parsedDomain = psl.parse(answer.cookies.domain);
+							if (parsedDomain?.['domain']) {
+								rootDomain = parsedDomain['domain'];
+							}
+						}
+
 						if (answer.cookies.value === 'delete') {
 							res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
 						} else {
@@ -413,7 +422,7 @@ export class Server {
 								httpOnly: true,
 								secure: true,
 								path: '/',
-								domain: answer.cookies?.domain ?? undefined,
+								domain: rootDomain,
 								maxAge: answer.cookies?.options?.ageInMs || 3600,
 								sameSite: 'none',
 							});

@@ -146,6 +146,9 @@ importers:
       node-cron:
         specifier: 4.2.1
         version: 4.2.1
+      psl:
+        specifier: ^1.15.0
+        version: 1.15.0
       ua-parser-js:
         specifier: ^2.0.6
         version: 2.0.6
@@ -1864,6 +1867,9 @@ packages:
   protobufjs@7.5.4:
     resolution: {integrity: sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==}
     engines: {node: '>=12.0.0'}
+
+  psl@1.15.0:
+    resolution: {integrity: sha512-JZd3gMVBAVQkSs6HdNZo9Sdo0LNcQeMNP3CozBJb3JYC/QUYZTnKxP+f8oWRX4rHP5EurWxqAHTSwUCjlNKa1w==}
 
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
@@ -4225,6 +4231,10 @@ snapshots:
       '@protobufjs/utf8': 1.1.0
       '@types/node': 22.15.3
       long: 5.3.2
+
+  psl@1.15.0:
+    dependencies:
+      punycode: 2.3.1
 
   punycode@2.3.1: {}
 
