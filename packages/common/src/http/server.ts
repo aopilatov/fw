@@ -422,7 +422,7 @@ export class Server {
 								httpOnly: true,
 								secure: true,
 								path: '/',
-								domain: rootDomain,
+								domain: rootDomain ? `.${rootDomain}` : undefined,
 								maxAge: answer.cookies?.options?.ageInMs || 3600,
 								sameSite: 'none',
 							});
