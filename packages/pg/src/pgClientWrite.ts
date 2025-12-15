@@ -62,7 +62,7 @@ export class PgWriteClient {
 
 	public async partition(table: string, name: string, start: DateTime, end: DateTime): Promise<void> {
 		await this.query(
-			`CREATE TABLE "${table}_${name}" PARTITION OF "${table}" FOR VALUES FROM ('${start.startOf('day').toSQL()}') TO ('${end.startOf('day').toSQL()}');`,
+			`CREATE TABLE "${table}_${name}" PARTITION OF "${table}" FOR VALUES FROM ('${start.startOf('day').toFormat('yyyy-MM-dd')}') TO ('${end.startOf('day').toFormat('yyyy-MM-dd')}');`,
 		);
 	}
 }

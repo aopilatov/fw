@@ -31,11 +31,14 @@ export class Redis {
 		if (!isCluster) {
 			this.client = createClient(config as RedisServerConfig);
 		} else {
-			this.client = createCluster({
+			const settings = {
 				rootNodes: (config as RedisClusterConfig).nodes!.map((item) => omit(item, ['isCluster'])),
 				defaults: { socket: { reconnectStrategy: (retries) => Math.min(retries * 50, 2000) } },
 				useReplicas: true,
-			});
+				// @ts-ignore
+				...omit(config as RedisClusterConfig, ['nodes']),
+			};
+			this.client = createCluster(settings);
 		}
 
 		this.client.on('error', (error: unknown) => onError(error));
