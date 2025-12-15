@@ -1,0 +1,19 @@
+{
+	"name": "@fw/gcp-pubsub",
+	"version": "2.0.1",
+	"description": "GCP PubSub lib",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"lint": "eslint .",
+		"typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
+		"publish-gcp": "sh ./publish.sh"
+	},
+	"devDependencies": {
+		"@fw/common": "workspace:^"
+	},
+	"dependencies": {
+		"@google-cloud/pubsub": "5.2.0"
+	}
+}

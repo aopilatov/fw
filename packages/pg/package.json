@@ -1,7 +1,7 @@
 {
 	"name": "@fw/pg",
-	"version": "1.0.1",
-	"description": "PubSub lib",
+	"version": "2.0.59",
+	"description": "Postgres lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
@@ -10,14 +10,13 @@
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
-	"dependencies": {
-		"@types/pg": "8.11.14",
-		"dbmate": "^2.27.0",
-		"pg": "8.15.6",
-		"pg-query-stream": "^4.10.3"
-	},
 	"devDependencies": {
-		"@fw/common": "workspace:^",
-		"@fw/logger": "workspace:^"
+		"@fw/common": "workspace:^"
+	},
+	"dependencies": {
+		"@types/pg": "8.15.5",
+		"google-auth-library": "^10.4.1",
+		"pg": "8.16.3",
+		"pg-query-stream": "4.10.3"
 	}
 }

@@ -1,25 +1,25 @@
-export type KeyboardButton = KeyboardButtonUrl | KeyboardButtonWebView | KeyboardButtonCallback;
+export type TelegramKeyboardButton = TelegramKeyboardButtonUrl | TelegramKeyboardButtonWebView | TelegramKeyboardButtonCallback;
 
-export interface KeyboardButtonUrl {
+export interface TelegramKeyboardButtonUrl {
 	type: 'url';
 	text: string;
 	url: string;
 }
 
-export interface KeyboardButtonWebView {
+export interface TelegramKeyboardButtonWebView {
 	type: 'webview';
 	text: string;
 	url: string;
 }
 
-export interface KeyboardButtonCallback {
+export interface TelegramKeyboardButtonCallback {
 	type: 'callback';
 	requiresPassword?: boolean;
 	text: string;
 	data: Buffer;
 }
 
-export interface InputCommand {
+export interface TelegramInputCommand {
 	command: string;
 	description: string;
 	language?: string;

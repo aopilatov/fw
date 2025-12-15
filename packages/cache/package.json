@@ -1,6 +1,6 @@
 {
   "name": "@fw/cache",
-  "version": "1.0.1",
+  "version": "2.0.2",
   "description": "Cache lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -10,7 +10,10 @@
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
-  "dependencies": {
-    "redis": "4.7.0"
+	"devDependencies": {
+		"@fw/common": "workspace:^"
+	},
+	"dependencies": {
+    "redis": "5.8.3"
   }
 }

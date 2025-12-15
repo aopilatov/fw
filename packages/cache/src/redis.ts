@@ -1,6 +1,7 @@
 import { omit } from 'es-toolkit';
 import { createCluster, createClient, RedisClientType, RedisClusterType, SetOptions } from 'redis';
-import { Service } from 'typedi';
+
+import { SystemService } from '@fw/common';
 
 import {
 	RedisConfig,
@@ -19,22 +20,25 @@ import {
 	RedisHSETTuples,
 } from './types';
 
-@Service({ global: true })
+@SystemService()
 export class Redis {
 	private client!: RedisClientType | RedisClusterType | null;
 
-	constructor(options: RedisConfig, onError: (error: unknown) => void) {
+	public init(options: RedisConfig, onError: (error: unknown) => void) {
 		const isCluster = options.isCluster;
 		const config = omit(options, ['isCluster']);
 
 		if (!isCluster) {
 			this.client = createClient(config as RedisServerConfig);
 		} else {
-			this.client = createCluster({
+			const settings = {
 				rootNodes: (config as RedisClusterConfig).nodes!.map((item) => omit(item, ['isCluster'])),
 				defaults: { socket: { reconnectStrategy: (retries) => Math.min(retries * 50, 2000) } },
 				useReplicas: true,
-			});
+				// @ts-ignore
+				...omit(config as RedisClusterConfig, ['nodes']),
+			};
+			this.client = createCluster(settings);
 		}
 
 		this.client.on('error', (error: unknown) => onError(error));
@@ -122,7 +126,8 @@ export class Redis {
 
 	public async sIsMember(key: RedisArgument, member: RedisArgument): Promise<boolean> {
 		if (!this.client) throw new Error('Client is not defined');
-		return this.client.sIsMember(key, member);
+		const result = await this.client.sIsMember(key, member);
+		return result === 1;
 	}
 
 	public async unlink(key: RedisArgument | RedisArgument[]): Promise<number> {
@@ -132,10 +137,11 @@ export class Redis {
 
 	public async hExists(key: RedisArgument, field: RedisArgument): Promise<boolean> {
 		if (!this.client) throw new Error('Client is not defined');
-		return this.client.hExists(key, field);
+		const result = await this.client.hExists(key, field);
+		return result === 1;
 	}
 
-	public async hGet(key: RedisArgument, field: RedisArgument): Promise<string | undefined> {
+	public async hGet(key: RedisArgument, field: RedisArgument): Promise<string | null> {
 		if (!this.client) throw new Error('Client is not defined');
 		return this.client.hGet(key, field);
 	}

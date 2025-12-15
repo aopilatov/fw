@@ -1,15 +1,14 @@
 import { Bot } from 'grammy';
-import { Service } from 'typedi';
 
-import { getLogger } from '@fw/logger/src';
+import { Container, Logger, SystemService } from '@fw/common';
 
 import { TelegramMessage } from './message';
 
-@Service({ global: true })
+@SystemService()
 export class TelegramApi {
-	private readonly bot: Bot;
+	private bot: Bot;
 
-	constructor(token: string) {
+	public init(token: string) {
 		this.bot = new Bot(token);
 	}
 
@@ -34,12 +33,12 @@ export class TelegramApi {
 
 		try {
 			const result = await this.bot.api[payload.cmd](payload.chatId, payload.message, payload.params);
-			getLogger().info('api sendMessage', 'message sent');
+			Container.get(Logger).debug('api sendMessage', { action: 'message sent' });
 
 			return String(result.message_id);
-		} catch (e: unknown) {
-			getLogger().error('api sendMessage', 'error', e);
-			throw e;
+		} catch (error: unknown) {
+			Container.get(Logger).error('api sendMessage', { action: 'error', error });
+			throw error;
 		}
 	}
 }
