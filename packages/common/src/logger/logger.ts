@@ -6,27 +6,42 @@ import { GlobalService, Registry } from '../di';
 
 import { LogConfig, LogCallback } from './types';
 
-const defaultFormatter = (record: LogRecord): string => {
+const defaultFormatter = (record: LogRecord): string[] => {
 	const msg: string[] = [];
 	const values: unknown[] = [];
 
 	for (let i = 0; i < record.message.length; i++) {
-		if (typeof record.message[i] === 'string') {
-			msg.push(record.message[i] as string);
+		let message = record.message[i];
+		if (typeof message === 'string') {
+			msg.push(message);
 		} else {
-			values.push(record.message[i]);
+			if (message instanceof Error) {
+				message = {
+					name: message?.['name'] ?? 'Unknown error',
+					message: message?.['message'] ?? 'No error message',
+					stack: message?.['stack'] ?? 'No stack trace',
+				};
+			}
+			values.push(message);
 		}
 	}
 
 	if (Object.keys(record.properties).length > 0) {
-		values.push(record.properties);
+		let message = record.properties;
+		if (message instanceof Error) {
+			message = {
+				name: message?.['name'] ?? 'Unknown error',
+				message: message?.['message'] ?? 'No error message',
+				stack: message?.['stack'] ?? 'No stack trace',
+			};
+		}
+		values.push(message);
 	}
 
-	let output = `${record.level.toUpperCase()} %c${record.category.join('\xb7')} ${msg.join(' ')}`;
+	const output: string[] = [`${record.level.toUpperCase()} ${record.category.join(' ')} ${msg.join(' ')}`];
 	if (values?.length) {
-		output += ': ';
 		for (const value of values) {
-			output += JSON.stringify(value) + ' ';
+			output.push(JSON.stringify(value));
 		}
 	}
 
