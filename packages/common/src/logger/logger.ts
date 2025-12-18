@@ -1,51 +1,56 @@
 import { configureSync, getConsoleSink, getLogger, LogRecord } from '@logtape/logtape';
 import { getPrettyFormatter } from '@logtape/pretty';
+import { isNumberString } from 'class-validator';
 import { omit } from 'es-toolkit/object';
+import { DateTime } from 'luxon';
 
 import { GlobalService, Registry } from '../di';
 
 import { LogConfig, LogCallback } from './types';
 
-const defaultFormatter = (record: LogRecord): string[] => {
-	const msg: string[] = [];
-	const values: unknown[] = [];
+const defaultFormatter = (record: LogRecord) => {
+	const textPayload: string[] = [...record.category];
+	let jsonPayload: Record<string, unknown> = {};
 
-	for (let i = 0; i < record.message.length; i++) {
-		let message = record.message[i];
-		if (typeof message === 'string') {
-			msg.push(message);
-		} else {
-			if (message instanceof Error) {
-				message = {
-					name: message?.['name'] ?? 'Unknown error',
-					message: message?.['message'] ?? 'No error message',
-					stack: message?.['stack'] ?? 'No stack trace',
+	const addPayload = (data: unknown, key?: string) => {
+		if (typeof data === 'object') {
+			let object = data;
+			if (object instanceof Error) {
+				object = {
+					name: object?.['name'] ?? 'Unknown error',
+					message: object?.['message'] ?? 'No error message',
+					stack: object?.['stack'] ?? 'No stack trace',
 				};
 			}
-			values.push(message);
+
+			if (key && !isNumberString(key)) {
+				jsonPayload[key] = object;
+			} else {
+				jsonPayload = { ...jsonPayload, ...object };
+			}
+		} else {
+			if (key) {
+				jsonPayload[key] = data;
+			} else {
+				textPayload.push(`${key}: ${data}`);
+			}
 		}
+	};
+
+	for (const message of record.message) {
+		addPayload(message);
 	}
 
-	if (Object.keys(record.properties).length > 0) {
-		let message = record.properties;
-		if (message instanceof Error) {
-			message = {
-				name: message?.['name'] ?? 'Unknown error',
-				message: message?.['message'] ?? 'No error message',
-				stack: message?.['stack'] ?? 'No stack trace',
-			};
-		}
-		values.push(message);
+	for (const key of Object.keys(record.properties)) {
+		addPayload(record.properties[key], key);
 	}
 
-	const output: string[] = [`${record.level.toUpperCase()} ${record.category.join(' ')} ${msg.join(' ')}`];
-	if (values?.length) {
-		for (const value of values) {
-			output.push(JSON.stringify(value));
-		}
-	}
-
-	return output;
+	return JSON.stringify({
+		timestamp: DateTime.fromMillis(record.timestamp).toISO(),
+		severity: record.level.toUpperCase(),
+		textPayload: textPayload.join(' '),
+		jsonPayload,
+	});
 };
 
 configureSync({

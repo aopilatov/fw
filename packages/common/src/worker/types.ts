@@ -18,7 +18,7 @@ export abstract class WorkerAbstraction {
 		const containerName = `${prefix}.${crypto.randomUUID()}`;
 		Container.of(containerName);
 
-		return await Registry.context.run({ requestId: containerName }, async () => {
+		const execute = async () => {
 			if (onCreate) {
 				await onCreate(containerName);
 			}
@@ -38,7 +38,15 @@ export abstract class WorkerAbstraction {
 			}
 
 			return result;
-		});
+		};
+
+		const context = Registry.context.getStore();
+		if (context) {
+			context.requestId = containerName;
+			return await execute();
+		} else {
+			return await Registry.context.run({ requestId: containerName }, execute);
+		}
 	}
 }
 
