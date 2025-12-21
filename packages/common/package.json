@@ -1,7 +1,7 @@
 {
-  "name": "@fw/common",
-  "version": "1.0.4",
-  "description": "Common lib",
+	"name": "@fw/common",
+	"version": "2.0.120",
+	"description": "Common lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
@@ -10,11 +10,16 @@
 		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
-	"devDependencies": {
-		"@fw/cache": "workspace:^",
-		"@fw/logger": "workspace:^",
-		"@fw/pg": "workspace:^",
-		"@fw/pubsub": "workspace:^",
-		"@fw/socket": "workspace:^"
+	"dependencies": {
+		"@fastify/cookie": "11.0.2",
+		"@fastify/cors": "11.2.0",
+		"@fastify/helmet": "13.0.2",
+		"@logtape/logtape": "1.1.1",
+		"@logtape/pretty": "1.1.1",
+		"fastify": "5.6.1",
+		"fastify-ip": "2.0.0",
+		"node-cron": "4.2.1",
+		"psl": "^1.15.0",
+		"ua-parser-js": "^2.0.6"
 	}
 }

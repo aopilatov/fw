@@ -3,22 +3,21 @@ import { TelegramClient, Api } from 'telegram';
 import { NewMessageEvent } from 'telegram/events';
 import { CallbackQueryEvent } from 'telegram/events/CallbackQuery';
 import { StringSession } from 'telegram/sessions';
-import { Container, Service } from 'typedi';
 
 import { Redis } from '@fw/cache';
-import { getLogger } from '@fw/logger/src';
+import { Container, Logger, Registry, SystemService } from '@fw/common';
 
 import { TelegramMessage } from './message';
-import { InputCommand } from './types';
+import { TelegramInputCommand } from './types';
 
-@Service({ global: true })
+@SystemService()
 export class TelegramMtproto {
 	private client!: TelegramClient;
 
 	public async start(name: string, config: { appId: number; appHash: string; botToken: string }) {
 		if (this.client) return;
 
-		const cache = Container.get(Redis);
+		const cache = Registry.get(Registry.getGlobalContainer(), 'system', Redis);
 
 		let session!: StringSession;
 		const sessionCache = await cache.hGetAll(`telegram:mtproto:${name}`);
@@ -54,10 +53,10 @@ export class TelegramMtproto {
 					authKey,
 				});
 			} else {
-				getLogger().error(`Error starting bot ${name}`, 'No auth key');
+				Container.get(Logger).error(`Error starting bot ${name}`, { message: 'No auth key' });
 			}
-		} catch (e: unknown) {
-			getLogger().error(`Error starting bot ${name}`, e);
+		} catch (error: unknown) {
+			Container.get(Logger).error(`Error starting bot ${name}`, { error });
 		}
 	}
 
@@ -69,7 +68,7 @@ export class TelegramMtproto {
 		this.client.addEventHandler(callable);
 	}
 
-	public async addCommand(command: InputCommand): Promise<void> {
+	public async addCommand(command: TelegramInputCommand): Promise<void> {
 		await this.client.invoke(
 			new Api.bots.SetBotCommands({
 				scope: new Api.BotCommandScopeDefault(),
@@ -95,9 +94,9 @@ export class TelegramMtproto {
 					offsetPeer: new Api.InputPeerEmpty(),
 				}),
 			);
-		} catch (e: unknown) {
-			getLogger().error('mtproto getDialogs', 'error', e);
-			throw e;
+		} catch (error: unknown) {
+			Container.get(Logger).error('mtproto getDialogs', { error });
+			throw error;
 		}
 	}
 
@@ -123,12 +122,12 @@ export class TelegramMtproto {
 
 		try {
 			const result = await this.client.invoke(data);
-			getLogger().info('mtproto sendMessage', 'message sent');
+			Container.get(Logger).debug('mtproto sendMessage', { action: 'message sent' });
 
 			return String(result['id'] || '0');
-		} catch (e: unknown) {
-			getLogger().error('mtproto sendMessage', 'error', e);
-			throw e;
+		} catch (error: unknown) {
+			Container.get(Logger).error('mtproto sendMessage', { error });
+			throw error;
 		}
 	}
 }
