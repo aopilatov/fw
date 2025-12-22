@@ -16,7 +16,7 @@
 	},
 	"dependencies": {
 		"big-integer": "1.6.52",
-		"grammy": "1.38.3",
+		"grammy": "1.38.4",
 		"telegram": "2.26.22"
 	}
 }

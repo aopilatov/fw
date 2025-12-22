@@ -188,8 +188,8 @@ importers:
         specifier: 1.6.52
         version: 1.6.52
       grammy:
-        specifier: 1.38.3
-        version: 1.38.3
+        specifier: 1.38.4
+        version: 1.38.4
       telegram:
         specifier: 2.26.22
         version: 2.26.22
@@ -1279,8 +1279,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  grammy@1.38.3:
-    resolution: {integrity: sha512-1eQwNfxrRQ0JOFqd3n1nKqyWkHvCQRCNiH8e5aYm27mIjGPobgss58XN8GORC2ejAWM2+NSdUknrMhYj87cjGg==}
+  grammy@1.38.4:
+    resolution: {integrity: sha512-z07Kin3HgRwMdy40KUs+c9fmNBvGlSxGwcqY8NAH0a8KULGFYEMQaFAo3ge0V5tvmgr02Jgubkf54KjHLAMCbw==}
     engines: {node: ^12.20.0 || >=14.13.1}
 
   graphemer@1.4.0:
@@ -2733,7 +2733,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.1
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
@@ -3646,7 +3646,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  grammy@1.38.3:
+  grammy@1.38.4:
     dependencies:
       '@grammyjs/types': 3.22.2
       abort-controller: 3.0.0
@@ -3702,14 +3702,14 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.4.1
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.1
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
