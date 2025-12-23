@@ -66,11 +66,13 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 	}
 
 	public oneToSqlSave(record: z.infer<M>) {
-		return this.oneToSql(record);
+		const model = this.model.parse(record);
+		return this.oneToSql(model);
 	}
 
 	public oneToSqlCreate(record: z.infer<C>) {
-		return this.oneToSql(record);
+		const model = this.creatable.parse(record);
+		return this.oneToSql(model);
 	}
 
 	public manyToSqlCreate(records: z.infer<C>[]) {
@@ -292,13 +294,6 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		if (schema instanceof z.ZodNullable) {
 			// @ts-ignore
 			return z.nullable(PgModel.modifySchema(schema.unwrap()));
-		}
-
-		if (schema instanceof z.ZodDefault) {
-			// @ts-ignore
-			const innerSchema = PgModel.modifySchema(schema.removeDefault());
-			// @ts-ignore
-			return innerSchema.default(schema._def.defaultValue());
 		}
 
 		if (schema instanceof z.ZodUnion) {
