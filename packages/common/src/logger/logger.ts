@@ -32,7 +32,7 @@ const defaultFormatter = (record: LogRecord) => {
 			if (key) {
 				jsonPayload[key] = data;
 			} else {
-				textPayload.push(`${key}: ${data}`);
+				textPayload.push(String(data));
 			}
 		}
 	};
@@ -48,8 +48,8 @@ const defaultFormatter = (record: LogRecord) => {
 	return JSON.stringify({
 		timestamp: DateTime.fromMillis(record.timestamp).toISO(),
 		severity: record.level.toUpperCase(),
-		textPayload: textPayload.join(' '),
-		jsonPayload,
+		message: textPayload.join(' '),
+		...jsonPayload,
 	});
 };
 

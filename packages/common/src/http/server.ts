@@ -37,6 +37,7 @@ declare module 'fastify' {
 		auth?: {
 			model: unknown;
 			token: Record<string, unknown>;
+			permissions?: unknown;
 		};
 	}
 }

@@ -7,7 +7,7 @@
 	"scripts": {
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
-		"build": "rm -rf ./dist && rimraf tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
+		"build": "rm -rf ./dist && rm -f tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
 	"devDependencies": {
@@ -16,7 +16,7 @@
 	},
 	"dependencies": {
 		"big-integer": "1.6.52",
-		"grammy": "1.38.3",
+		"grammy": "1.38.4",
 		"telegram": "2.26.22"
 	}
 }
