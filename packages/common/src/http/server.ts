@@ -397,7 +397,7 @@ export class Server {
 				method: route.method.toLowerCase(),
 				url: route.route,
 				config: route.config,
-				handler: async (req: ServerRequest, res: ServerResponse) => {
+				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
 					if (route?.guards?.length) {
 						for (const guard of route.guards) {
 							const result = await guard(req);
