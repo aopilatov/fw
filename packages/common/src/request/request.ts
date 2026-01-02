@@ -1,4 +1,4 @@
-import { Container, Registry, SystemService, Context } from '../di';
+import { Container, Registry, SystemService, Context, ContextUser } from '../di';
 import { Logger } from '../logger';
 
 @SystemService()
@@ -27,6 +27,14 @@ export class Request {
 
 	public set transactional(data: boolean) {
 		this.context.hasTransaction = data;
+	}
+
+	public get user(): ContextUser | undefined {
+		return this.context.user;
+	}
+
+	public set user(user: ContextUser) {
+		this.context.user = user;
 	}
 
 	public addDefer(defer: () => void | Promise<void>): void {

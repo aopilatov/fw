@@ -51,4 +51,9 @@ export type Context = {
 	correlationId?: string;
 	defers?: (() => void | Promise<void>)[];
 	hasTransaction?: boolean;
+	user?: ContextUser;
 };
+
+export interface ContextUser {
+	user: unknown;
+}
