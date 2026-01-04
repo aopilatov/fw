@@ -54,6 +54,5 @@ export type Context = {
 	user?: ContextUser;
 };
 
-export interface ContextUser {
-	something: unknown;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ContextUser {}
