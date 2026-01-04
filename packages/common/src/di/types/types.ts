@@ -55,5 +55,5 @@ export type Context = {
 };
 
 export interface ContextUser {
-	user: unknown;
+	something: unknown;
 }
