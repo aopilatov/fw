@@ -10,7 +10,7 @@ import { PG_CONDITION, PgColumn, PgType, PgWhere } from './types';
 export class PgView {
 	constructor(
 		public readonly name: string,
-		private readonly metadata: Map<string, PgColumn>,
+		public readonly metadata: Map<string, PgColumn>,
 	) {
 		Container.getSystem(Pg).registerView(this);
 	}
