@@ -7,8 +7,12 @@ import { PgError } from './errors';
 import { PgColumn, PgWhere } from './types';
 
 export class PgBuilder {
-	public static getPlaceholder(index: number, columnMetadata: PgColumn): string {
+	public static getPlaceholder(index: number, columnMetadata: PgColumn, withAny?: boolean): string {
 		if (columnMetadata?.isArray) {
+			if (withAny) {
+				return `ANY($${index + 1})`;
+			}
+
 			return `$${index + 1}::${columnMetadata.type}[]`;
 		}
 

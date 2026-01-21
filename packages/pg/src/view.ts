@@ -1,3 +1,4 @@
+import { isNumberString } from 'class-validator';
 import { z } from 'zod';
 
 import { Container } from '@fw/common';
@@ -125,7 +126,7 @@ export class PgView {
 		return new PgView(name, metadata);
 	}
 
-	public async toSql(where: PgWhere, orderBy?: Record<string, 'ASC' | 'DESC'>) {
+	public async toSql(where: PgWhere, orderBy?: Record<string, 'ASC' | 'DESC'>, search?: { keys: string[]; value: string }) {
 		const values: unknown[] = [];
 		const conditions: string[] = [];
 		const orders: string[] = [];
@@ -149,6 +150,18 @@ export class PgView {
 
 			if (validations.some((item) => !item.success)) {
 				throw new PgError(`${key}: validation failed`);
+			}
+		}
+
+		const searchValues: Record<string, unknown> = {};
+		if (search) {
+			for (const key of search.keys) {
+				const metadata = this.metadata.get(key);
+				if (!metadata) {
+					throw new PgError(`${key}: Class does not have column metadata for search key`);
+				}
+
+				searchValues[key] = search.value;
 			}
 		}
 
@@ -256,6 +269,81 @@ export class PgView {
 				values.push(value);
 				number++;
 			}
+		}
+
+		const searchConditions: string[] = [];
+		for (const [key, value] of Object.entries(searchValues)) {
+			const metadata = this.metadata.get(key);
+			if (!metadata) {
+				throw new PgError(`${key}: Class does not have column metadata`);
+			}
+
+			const valueIsNumeric = isNumberString(value);
+
+			if (
+				[
+					'INT2',
+					'SMALLINT',
+					'SERIAL2',
+					'SMALLSERIAL',
+					'INT4',
+					'INT',
+					'INTEGER',
+					'SERIAL4',
+					'SERIAL',
+					'INT8',
+					'BIGINT',
+					'SERIAL8',
+					'BIGSERIAL',
+					'FLOAT4',
+					'REAL',
+					'FLOAT8',
+					'DOUBLE PRECISION',
+					'NUMERIC',
+					'DECIMAL',
+				].includes(metadata.type) &&
+				!valueIsNumeric
+			) {
+				continue;
+			}
+
+			if (
+				[
+					'INT2',
+					'SMALLINT',
+					'SERIAL2',
+					'SMALLSERIAL',
+					'INT4',
+					'INT',
+					'INTEGER',
+					'SERIAL4',
+					'SERIAL',
+					'INT8',
+					'BIGINT',
+					'SERIAL8',
+					'BIGSERIAL',
+					'FLOAT4',
+					'REAL',
+					'FLOAT8',
+					'DOUBLE PRECISION',
+					'NUMERIC',
+					'DECIMAL',
+				].includes(metadata.type)
+			) {
+				const placeholder = PgBuilder.getPlaceholder(number, metadata);
+				searchConditions.push(`"${key}" = ${placeholder}`);
+				values.push(Number(value));
+			} else {
+				const placeholder = PgBuilder.getPlaceholder(number, metadata);
+				searchConditions.push(`"${key}"::TEXT ILIKE ${placeholder}`);
+				values.push(`%${value}%`);
+			}
+
+			number++;
+		}
+
+		if (searchConditions.length) {
+			conditions.push(`(${searchConditions.join(' OR ')})`);
 		}
 
 		if (orderBy) {
