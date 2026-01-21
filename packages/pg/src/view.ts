@@ -233,7 +233,7 @@ export class PgView {
 						break;
 
 					case PG_CONDITION.CONTAINS:
-						conditions.push(`"${key}" = ANY(${placeholder})`);
+						conditions.push(`"${key}" @> ${placeholder}`);
 						values.push(value.value);
 						number++;
 						break;
