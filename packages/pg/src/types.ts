@@ -66,6 +66,7 @@ export enum PG_CONDITION {
 	IN = 'IN',
 	NOT_IN = 'NOT IN',
 	BETWEEN = 'BETWEEN',
+	CONTAINS = 'CONTAINS',
 }
 
 type PgWhereType = string | number | boolean | null;
@@ -78,7 +79,8 @@ type PgWhereCondition =
 				| PG_CONDITION.GREATER_THAN
 				| PG_CONDITION.GREATER_THAN_OR_EQUAL
 				| PG_CONDITION.LESS_THAN
-				| PG_CONDITION.LESS_THAN_OR_EQUAL;
+				| PG_CONDITION.LESS_THAN_OR_EQUAL
+				| PG_CONDITION.CONTAINS;
 			value: PgWhereType;
 	  }
 	| {

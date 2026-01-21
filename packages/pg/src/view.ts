@@ -232,6 +232,12 @@ export class PgView {
 						number++;
 						break;
 
+					case PG_CONDITION.CONTAINS:
+						conditions.push(`"${key}" = ANY(${placeholder})`);
+						values.push(value.value);
+						number++;
+						break;
+
 					case PG_CONDITION.BETWEEN: {
 						values.push(value.value[0]);
 						number++;
