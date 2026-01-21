@@ -145,8 +145,6 @@ export class PgView {
 				} else {
 					validations.push(metadata.schema.safeParse(value.value));
 				}
-			} else {
-				validations.push(metadata.schema.safeParse(value));
 			}
 
 			if (validations.some((item) => !item.success)) {

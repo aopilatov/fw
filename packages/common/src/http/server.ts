@@ -8,7 +8,7 @@ import { set } from 'es-toolkit/compat';
 import { fastify, FastifyContextConfig } from 'fastify';
 import fastifyIp from 'fastify-ip';
 import psl from 'psl';
-import { UAParser, IResult } from 'ua-parser-js';
+import { UAParser, IResult, IData } from 'ua-parser-js';
 
 import { Container, Registry } from '../di';
 import { Logger } from '../logger';
