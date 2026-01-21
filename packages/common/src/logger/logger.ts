@@ -12,21 +12,44 @@ const defaultFormatter = (record: LogRecord) => {
 	const textPayload: string[] = [...record.category];
 	let jsonPayload: Record<string, unknown> = {};
 
+	const serializeValue = (value: unknown, depth = 2): unknown => {
+		if (!value || typeof value !== 'object') {
+			return value;
+		}
+
+		if (value instanceof Error) {
+			return {
+				name: value?.['name'] ?? 'Unknown error',
+				message: value?.['message'] ?? 'No error message',
+				stack: value?.['stack'] ?? 'No stack trace',
+			};
+		}
+
+		if (depth <= 0) {
+			return value;
+		}
+
+		if (Array.isArray(value)) {
+			return value.map((entry) => serializeValue(entry, depth - 1));
+		}
+
+		const object = value as Record<string, unknown>;
+		const normalized: Record<string, unknown> = {};
+		for (const [key, entry] of Object.entries(object)) {
+			normalized[key] = serializeValue(entry, depth - 1);
+		}
+
+		return normalized;
+	};
+
 	const addPayload = (data: unknown, key?: string) => {
 		if (typeof data === 'object') {
-			let object = data;
-			if (object instanceof Error) {
-				object = {
-					name: object?.['name'] ?? 'Unknown error',
-					message: object?.['message'] ?? 'No error message',
-					stack: object?.['stack'] ?? 'No stack trace',
-				};
-			}
+			const object = serializeValue(data);
 
 			if (key && !isNumberString(key)) {
 				jsonPayload[key] = object;
 			} else {
-				jsonPayload = { ...jsonPayload, ...object };
+				jsonPayload = { ...jsonPayload, ...(object ?? {}) };
 			}
 		} else {
 			if (key) {

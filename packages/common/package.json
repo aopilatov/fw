@@ -7,6 +7,7 @@
 	"scripts": {
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"test": "node --test --require ts-node/register ./**/*.test.ts",
 		"build": "rm -rf ./dist && rm -f tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},
