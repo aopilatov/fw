@@ -2,27 +2,38 @@ import { UUID } from 'node:crypto';
 
 import { isUUID } from 'class-validator';
 import { DateTime } from 'luxon';
+import { Geometry } from 'wkx-ts';
 
 import { PgError } from './errors';
 import { PgColumn, PgWhere } from './types';
 
 export class PgBuilder {
-	public static getPlaceholder(index: number, columnMetadata: PgColumn, withAny?: boolean): string {
-		if (columnMetadata?.isArray) {
-			if (withAny) {
-				return `ANY($${index + 1})`;
+	public static getPlaceholder(index: number | number[], columnMetadata: PgColumn, withAny?: boolean): string {
+		if (!Array.isArray(index)) {
+			if (columnMetadata?.isArray) {
+				if (withAny) {
+					return `ANY($${index + 1})`;
+				}
+
+				return `$${index + 1}::${columnMetadata.type}[]`;
 			}
 
-			return `$${index + 1}::${columnMetadata.type}[]`;
-		}
+			switch (columnMetadata.type) {
+				case 'INET':
+					return `$${index + 1}::INET`;
+				case 'CIDR':
+					return `$${index + 1}::CIDR`;
+				case 'GEOGRAPHY':
+					return `ST_MakePoint($2, $3)::GEOGRAPHY`;
+				default:
+					return `$${index + 1}`;
+			}
+		} else {
+			if (columnMetadata.type === 'GEOGRAPHY') {
+				return `ST_MakePoint($${index[0] + 1}, $${index[1] + 1})::GEOGRAPHY`;
+			}
 
-		switch (columnMetadata.type) {
-			case 'INET':
-				return `$${index + 1}::INET`;
-			case 'CIDR':
-				return `$${index + 1}::CIDR`;
-			default:
-				return `$${index + 1}`;
+			throw new PgError('Supported by types: [GEOGRAPHY]');
 		}
 	}
 
@@ -85,6 +96,14 @@ export class PgBuilder {
 		if (isNull) return null;
 
 		const getValue = (item: unknown) => (typeof item === 'string' ? JSON.parse(item) : item);
+		return PgBuilder.getValue(key, value, columnMetadata, getValue);
+	}
+
+	public static getCoordinates(key: string, value: unknown, columnMetadata: PgColumn) {
+		const isNull = this.throwIfNullable(key, value, columnMetadata);
+		if (isNull) return null;
+
+		const getValue = (item: unknown) => (typeof item === 'string' ? Geometry.parse(Buffer.from(item, 'hex').toString()).toGeoJSON() : item);
 		return PgBuilder.getValue(key, value, columnMetadata, getValue);
 	}
 

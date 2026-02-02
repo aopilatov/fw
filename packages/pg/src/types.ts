@@ -38,7 +38,8 @@ export type PgType =
 	| 'TIMESTAMP WITHOUT TIME ZONE'
 	| 'TIMESTAMP WITH TIME ZONE'
 	| 'TIMESTAMPZ'
-	| 'JSONB';
+	| 'JSONB'
+	| 'GEOGRAPHY';
 
 export type PgColumn = {
 	name: string;
