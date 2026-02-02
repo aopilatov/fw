@@ -1,12 +1,13 @@
 {
 	"name": "@fw/common",
-	"version": "2.0.126",
+	"version": "2.0.130",
 	"description": "Common lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"test": "node --test --require ts-node/register ./**/*.test.ts",
 		"build": "rm -rf ./dist && rm -f tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
 		"publish-gcp": "sh ./publish.sh"
 	},

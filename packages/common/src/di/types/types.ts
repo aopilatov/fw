@@ -51,4 +51,8 @@ export type Context = {
 	correlationId?: string;
 	defers?: (() => void | Promise<void>)[];
 	hasTransaction?: boolean;
+	user?: ContextUser;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ContextUser {}

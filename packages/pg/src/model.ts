@@ -190,6 +190,10 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 					record[key] = PgBuilder.getJson(key, value, columnMetadata);
 					break;
 
+				case 'GEOGRAPHY':
+					record[key] = PgBuilder.getCoordinates(key, value, columnMetadata);
+					break;
+
 				case 'DATE':
 				case 'TIME':
 				case 'TIME WITHOUT TIME ZONE':
@@ -235,9 +239,21 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 				const value = this.dataToSql(record[column]);
 
 				fields.push(column);
-				values.push(value);
-				placeholders.push(PgBuilder.getPlaceholder(number, columnMetadata));
-				number++;
+
+				if (columnMetadata.type === 'GEOGRAPHY') {
+					if (!value || typeof value !== 'object' || !('lat' in value) || !('lng' in value)) {
+						throw new PgError(`${column}: GEOGRAPHY must have lat and lng`);
+					}
+
+					values.push(value.lng);
+					values.push(value.lat);
+					placeholders.push(PgBuilder.getPlaceholder([number, ++number], columnMetadata));
+					number++;
+				} else {
+					values.push(value);
+					placeholders.push(PgBuilder.getPlaceholder(number, columnMetadata));
+					number++;
+				}
 			}
 		}
 
