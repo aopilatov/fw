@@ -65,6 +65,10 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		return Container.getSystem(Pg).getModel(table);
 	}
 
+	public getMetadata(table: string) {
+		return this.metadata.get(table);
+	}
+
 	public oneToSqlSave(record: z.infer<M>) {
 		const model = this.model.parse(record);
 		return this.oneToSql(model);
@@ -126,6 +130,8 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 		const record: Record<string, unknown> = {};
 
 		for (const [key, value] of Object.entries(data)) {
+			if (key.startsWith('fw_custom_')) continue;
+
 			let columnMetadata = this.metadata.get(key);
 			if (!columnMetadata) {
 				if (extendSchema) {
@@ -190,9 +196,15 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 					record[key] = PgBuilder.getJson(key, value, columnMetadata);
 					break;
 
-				case 'GEOGRAPHY':
-					record[key] = PgBuilder.getCoordinates(key, value, columnMetadata);
+				case 'GEOGRAPHY': {
+					let finalValue = value;
+					if (!!data[`fw_custom_${key}`]) {
+						finalValue = data[`fw_custom_${key}`];
+					}
+
+					record[key] = PgBuilder.getCoordinates(key, finalValue, columnMetadata);
 					break;
+				}
 
 				case 'DATE':
 				case 'TIME':

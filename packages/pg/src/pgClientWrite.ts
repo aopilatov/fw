@@ -29,11 +29,21 @@ export class PgWriteClient {
 
 	public async insertOne(model: PgModel, record: Record<string, unknown>): Promise<QueryResult> {
 		const data = model.oneToSqlCreate(record);
+		const returning: string[] = ['*'];
+
+		for (const field of data.fields) {
+			const metadata = model.getMetadata(field);
+			if (!metadata) continue;
+
+			if (metadata.type === 'GEOGRAPHY') {
+				returning.push(`ST_AsGeoJSON("${field}")::JSON as fw_custom_${field}`);
+			}
+		}
 
 		const query = `
 			INSERT INTO "${model.table}" (${data.fields.map((item) => `"${item}"`).join(', ')})
 			VALUES (${data.placeholders.join(', ')})
-			RETURNING *;
+			RETURNING ${returning.join(', ')};
 		`;
 
 		return this.client.query(query, data.values);

@@ -2,7 +2,6 @@ import { UUID } from 'node:crypto';
 
 import { isUUID } from 'class-validator';
 import { DateTime } from 'luxon';
-import { Geometry } from 'wkx-ts';
 
 import { PgError } from './errors';
 import { PgColumn, PgWhere } from './types';
@@ -103,7 +102,14 @@ export class PgBuilder {
 		const isNull = this.throwIfNullable(key, value, columnMetadata);
 		if (isNull) return null;
 
-		const getValue = (item: unknown) => (typeof item === 'string' ? Geometry.parse(Buffer.from(item, 'hex').toString()).toGeoJSON() : item);
+		const getValue = (item: unknown) => {
+			if (typeof item !== 'object') return item;
+			if (!(item && 'type' in item && 'coordinates' in item && Array.isArray(item.coordinates))) return item;
+
+			const [lng, lat] = item.coordinates;
+			return { lat, lng };
+		};
+
 		return PgBuilder.getValue(key, value, columnMetadata, getValue);
 	}
 
