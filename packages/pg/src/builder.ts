@@ -106,8 +106,12 @@ export class PgBuilder {
 			if (typeof item !== 'object') return item;
 			if (!(item && 'type' in item && 'coordinates' in item && Array.isArray(item.coordinates))) return item;
 
-			const [lng, lat] = item.coordinates;
-			return { lat, lng };
+			if (item.type === 'Point') {
+				const [lng, lat] = item.coordinates;
+				return { lat, lng };
+			}
+
+			return item;
 		};
 
 		return PgBuilder.getValue(key, value, columnMetadata, getValue);
