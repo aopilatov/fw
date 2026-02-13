@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { Container } from '@fw/common';
 
+import { BuildSelect } from './buildSelect';
+import { BuildUpdate } from './buildUpdate';
 import { PgBuilder } from './builder';
 import { PgError } from './errors';
 import { Pg } from './pg';
@@ -231,6 +233,14 @@ export class PgModel<M extends z.ZodObject = z.ZodObject, C extends z.ZodObject 
 			...record,
 			...result,
 		};
+	}
+
+	public select() {
+		return new BuildSelect(this.table, this.metadata);
+	}
+
+	public update() {
+		return new BuildUpdate(this.table, this.metadata);
 	}
 
 	private oneToSql(record: object) {
