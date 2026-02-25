@@ -308,34 +308,36 @@ export class Server {
 				this.activeRequests++;
 
 				if (Server?.onRequest) {
-					Server.onRequest(request, reply).then(() => {
-						next();
-					});
+					Server.onRequest(request, reply)
+						.then(() => {
+							next();
+						})
+						.catch((err: unknown) => {
+							if (err instanceof Error) {
+								next(err);
+							} else {
+								next();
+							}
+						});
 				} else {
 					next();
 				}
 			});
 		});
 
-		server.addHook('onResponse', (request, response, next) => {
+		server.addHook('onResponse', async (request, response) => {
 			if (!Server.isHooksRequired(request)) {
-				return next();
+				return;
 			}
-
-			const context = Registry.context.getStore();
-			const executeNext = (withActiveRequests: boolean) => {
-				Container.reset(request.id);
-				if (withActiveRequests) this.activeRequests--;
-				next();
-			};
 
 			if (Server?.onResponse) {
-				Server.onResponse(request, response).then(() => {
-					executeNext(!!context);
-				});
-			} else {
-				executeNext(!!context);
+				await Server.onResponse(request, response);
 			}
+
+			Container.reset(request.id);
+
+			const context = Registry.context.getStore();
+			if (!!context) this.activeRequests--;
 		});
 
 		server.get('/', (req, res) => {
