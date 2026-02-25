@@ -6,7 +6,7 @@ import { DateTime } from 'luxon';
 
 import { GlobalService, Registry } from '../di';
 
-import { LogConfig, LogCallback } from './types';
+import { LogCallback, LogConfig } from './types';
 
 const defaultFormatter = (record: LogRecord) => {
 	const textPayload: string[] = [...record.category];
@@ -124,7 +124,7 @@ export class Logger {
 	public trace(properties: Record<string, unknown>): void;
 	public trace(callback: LogCallback): void;
 	public trace(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
-		this.get().trace(message as TemplateStringsArray, values);
+		this.get().trace(message as TemplateStringsArray, this.formatValues(values));
 	}
 
 	public debug(message: TemplateStringsArray, ...values: readonly unknown[]): void;
@@ -132,7 +132,7 @@ export class Logger {
 	public debug(properties: Record<string, unknown>): void;
 	public debug(callback: LogCallback): void;
 	public debug(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
-		this.get().debug(message as TemplateStringsArray, values);
+		this.get().debug(message as TemplateStringsArray, this.formatValues(values));
 	}
 
 	public info(message: TemplateStringsArray, ...values: readonly unknown[]): void;
@@ -140,7 +140,7 @@ export class Logger {
 	public info(properties: Record<string, unknown>): void;
 	public info(callback: LogCallback): void;
 	public info(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
-		this.get().info(message as TemplateStringsArray, values);
+		this.get().info(message as TemplateStringsArray, this.formatValues(values));
 	}
 
 	public warning(message: TemplateStringsArray, ...values: readonly unknown[]): void;
@@ -148,7 +148,7 @@ export class Logger {
 	public warning(properties: Record<string, unknown>): void;
 	public warning(callback: LogCallback): void;
 	public warning(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
-		this.get().warning(message as TemplateStringsArray, values);
+		this.get().warning(message as TemplateStringsArray, this.formatValues(values));
 	}
 
 	public error(message: TemplateStringsArray, ...values: readonly unknown[]): void;
@@ -156,7 +156,7 @@ export class Logger {
 	public error(properties: Record<string, unknown>): void;
 	public error(callback: LogCallback): void;
 	public error(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
-		this.get().error(message as TemplateStringsArray, values);
+		this.get().error(message as TemplateStringsArray, this.formatValues(values));
 	}
 
 	public fatal(message: TemplateStringsArray, ...values: readonly unknown[]): void;
@@ -164,17 +164,19 @@ export class Logger {
 	public fatal(properties: Record<string, unknown>): void;
 	public fatal(callback: LogCallback): void;
 	public fatal(message: TemplateStringsArray | string | LogCallback | Record<string, unknown>, ...values: unknown[]): void {
-		this.get().fatal(message as TemplateStringsArray, values);
+		this.get().fatal(message as TemplateStringsArray, this.formatValues(values));
+	}
+
+	private formatValues(values: unknown[]): unknown[] {
+		const contextStore = Registry.context.getStore();
+		if (contextStore) {
+			return [omit(contextStore, ['defers', 'hasTransaction']), ...values];
+		}
+
+		return values;
 	}
 
 	private get() {
-		const logger = getLogger();
-
-		const contextStore = Registry.context.getStore();
-		if (contextStore) {
-			return logger.with(omit(contextStore, ['defers', 'hasTransaction']));
-		}
-
-		return logger;
+		return getLogger();
 	}
 }

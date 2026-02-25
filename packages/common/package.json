@@ -1,6 +1,6 @@
 {
 	"name": "@fw/common",
-	"version": "2.0.134",
+	"version": "2.0.135",
 	"description": "Common lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -9,14 +9,15 @@
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"test": "node --test --require ts-node/register ./**/*.test.ts",
 		"build": "rm -rf ./dist && rm -f tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
-		"publish-gcp": "sh ./publish.sh"
+		"publish-gcp": "sh ./publish.sh",
+		"tests": "node --require ts-node/register ./src/test/index.ts"
 	},
 	"dependencies": {
 		"@fastify/cookie": "11.0.2",
 		"@fastify/cors": "11.2.0",
 		"@fastify/helmet": "13.0.2",
-		"@logtape/logtape": "1.1.1",
-		"@logtape/pretty": "1.1.1",
+		"@logtape/logtape": "2.0.2",
+		"@logtape/pretty": "2.0.2",
 		"fastify": "5.6.1",
 		"fastify-ip": "2.0.0",
 		"node-cron": "4.2.1",

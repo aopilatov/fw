@@ -1,4 +1,4 @@
-import type { LogLevel } from '@logtape/logtape/src/level';
+import type { LogLevel } from '@logtape/logtape';
 
 export type LogConfig = {
 	lowestLevel?: LogLevel;
