@@ -281,29 +281,14 @@ export class Server {
 			});
 		}
 
-		if (this?.contentType?.includes('json')) {
-			server.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
-				try {
-					done(null, JSON.parse(body.toString('utf8')));
-				} catch (e: unknown) {
-					const err = e as Error;
-					set(err, 'statusCode', 400);
-					done(err, undefined);
-				}
-			});
-		}
-
 		if (this?.errorHandler) {
 			server.setErrorHandler(this.errorHandler);
 		}
 
 		server.addHook('onRequest', (request, reply, next) => {
-			if (this?.maxConcurrentRequests && this.activeRequests >= this?.maxConcurrentRequests) {
-				reply.code(503).send({ error: 'Server too busy, try again later' });
-				return reply;
+			if (!Server.isHooksRequired(request)) {
+				return next();
 			}
-
-			this.activeRequests++;
 
 			let country!: string;
 			for (const header of this.customCountryHeaders) {
@@ -321,7 +306,9 @@ export class Server {
 
 			const context = Registry.context;
 			context.run({ requestId: request.id }, () => {
-				if (Server?.onRequest && request.raw.method !== 'OPTIONS') {
+				this.activeRequests++;
+
+				if (Server?.onRequest) {
 					Server.onRequest(request, reply).then(() => {
 						next();
 					});
@@ -331,21 +318,24 @@ export class Server {
 			});
 		});
 
-		server.addHook('onSend', (request, reply, _, next) => {
-			const context = Registry.context.getStore();
-			if (context && request.raw.method !== 'OPTIONS') {
-				Container.reset(request.id);
-				this.activeRequests--;
+		server.addHook('onResponse', (request, response, next) => {
+			if (!Server.isHooksRequired(request)) {
+				return next();
+			}
 
-				if (Server?.onResponse) {
-					Server.onResponse(request, reply).then(() => {
-						next();
-					});
-				} else {
-					next();
-				}
-			} else {
+			const context = Registry.context.getStore();
+			const executeNext = (withActiveRequests: boolean) => {
+				Container.reset(request.id);
+				if (withActiveRequests) this.activeRequests--;
 				next();
+			};
+
+			if (Server?.onResponse) {
+				Server.onResponse(request, response).then(() => {
+					executeNext(!!context);
+				});
+			} else {
+				executeNext(!!context);
 			}
 		});
 
@@ -389,6 +379,11 @@ export class Server {
 		}
 
 		return res.code(500).send('not ok');
+	}
+
+	private static isHooksRequired(request: ServerRequest): boolean {
+		if (request.raw.method === 'OPTIONS') return false;
+		return !['/', '/_/readiness'].includes(request.raw.url);
 	}
 
 	private static registerRoutes(server: ServerInstance) {
