@@ -9,8 +9,7 @@
 		"typecheck": "tsc --noEmit -p ./tsconfig.json",
 		"test": "node --test --require ts-node/register ./**/*.test.ts",
 		"build": "rm -rf ./dist && rm -f tsconfig.build.tsbuildinfo && tsc -p ./tsconfig.build.json",
-		"publish-gcp": "sh ./publish.sh",
-		"run": "node --require ts-node/register ./src/test/index.ts"
+		"publish-gcp": "sh ./publish.sh"
 	},
 	"dependencies": {
 		"@fastify/cookie": "11.0.2",
