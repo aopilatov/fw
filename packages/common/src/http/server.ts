@@ -425,7 +425,7 @@ export class Server {
 					};
 
 					const executeWithTimeout = async (skipAdditionalLogic: boolean) => {
-						const timeout = 5000;
+						const timeout = Server.isDev ? 500000 : 5000;
 						const controller = new AbortController();
 						const { signal } = controller;
 
