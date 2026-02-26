@@ -325,21 +325,6 @@ export class Server {
 			});
 		});
 
-		server.addHook('onResponse', async (request, response) => {
-			if (!Server.isHooksRequired(request)) {
-				return;
-			}
-
-			if (Server?.onResponse) {
-				await Server.onResponse(request, response);
-			}
-
-			Container.reset(request.id);
-
-			const context = Registry.context.getStore();
-			if (!!context) this.activeRequests--;
-		});
-
 		server.get('/', (req, res) => {
 			this.isServerReady(req, res);
 		});
@@ -426,8 +411,23 @@ export class Server {
 						}
 					}
 
+					if (Server.isHooksRequired(req)) {
+						try {
+							if (Server?.onResponse) {
+								await Server.onResponse(req, res);
+							}
+						} catch (error: unknown) {
+							Container.get(Logger).error('onResponse', { error });
+						} finally {
+							Container.reset(req.id);
+
+							const context = Registry.context.getStore();
+							if (!!context) this.activeRequests--;
+						}
+					}
+
 					res.code(answer.statusCode);
-					return res.send(answer.body);
+					res.send(answer.body);
 				},
 			});
 		}

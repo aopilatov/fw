@@ -1,6 +1,6 @@
 {
 	"name": "@fw/common",
-	"version": "2.0.136",
+	"version": "2.0.137",
 	"description": "Common lib",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -18,7 +18,7 @@
 		"@fastify/helmet": "13.0.2",
 		"@logtape/logtape": "2.0.2",
 		"@logtape/pretty": "2.0.2",
-		"fastify": "5.6.1",
+		"fastify": "5.7.4",
 		"fastify-ip": "2.0.0",
 		"node-cron": "4.2.1",
 		"psl": "^1.15.0",

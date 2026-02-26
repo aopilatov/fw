@@ -48,5 +48,7 @@ export class Request {
 		for (const result of results.filter((item) => item.status === 'rejected')) {
 			Container.get(Logger).error('defer failed', result.reason);
 		}
+
+		this.context.defers = [];
 	}
 }
