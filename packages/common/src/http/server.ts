@@ -7,13 +7,13 @@ import { LogLevel } from '@logtape/logtape';
 import { fastify, FastifyContextConfig } from 'fastify';
 import fastifyIp from 'fastify-ip';
 import psl from 'psl';
-import { UAParser, IResult, IData } from 'ua-parser-js';
+import { IResult, UAParser } from 'ua-parser-js';
 
 import { Container, Registry } from '../di';
 import { Logger } from '../logger';
 
 import { certExample, keyExample } from './consts';
-import { ForbiddenError } from './errors';
+import { ForbiddenError, HttpTimeoutError } from './errors';
 import {
 	ErrorHandler,
 	GuardCallback,
@@ -22,6 +22,7 @@ import {
 	Route,
 	RouteFunc,
 	RouteMethod,
+	RouteReply,
 	ServerInstance,
 	ServerRequest,
 	ServerResponse,
@@ -284,47 +285,6 @@ export class Server {
 			server.setErrorHandler(this.errorHandler);
 		}
 
-		server.addHook('onRequest', (request, reply, next) => {
-			if (!Server.isHooksRequired(request)) {
-				return next();
-			}
-
-			let country!: string;
-			for (const header of this.customCountryHeaders) {
-				if (!country) country = request.headers?.[header] as string;
-			}
-			if (!country) country = 'zz';
-
-			let referer = request.headers?.['origin'];
-			if (!referer) referer = request.headers?.['referer'];
-			if (!referer) referer = undefined;
-
-			request.country = country;
-			request.referer = referer;
-			request.userAgent = UAParser(request.headers['user-agent']);
-
-			const context = Registry.context;
-			context.run({ requestId: request.id }, () => {
-				this.activeRequests++;
-
-				if (Server?.onRequest) {
-					Server.onRequest(request, reply)
-						.then(() => {
-							next();
-						})
-						.catch((err: unknown) => {
-							if (err instanceof Error) {
-								next(err);
-							} else {
-								next();
-							}
-						});
-				} else {
-					next();
-				}
-			});
-		});
-
 		server.get('/', (req, res) => {
 			this.isServerReady(req, res);
 		});
@@ -379,55 +339,136 @@ export class Server {
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
-					if (route?.guards?.length) {
-						for (const guard of route.guards) {
-							const result = await guard(req);
-							if (!result) throw new ForbiddenError('You are not allowed');
-						}
-					}
+					const executeHandler = async (skipAdditionalLogic: boolean, signal: AbortSignal) => {
+						if (!skipAdditionalLogic) {
+							let country!: string;
+							for (const header of this.customCountryHeaders) {
+								if (!country) country = req.headers?.[header] as string;
+							}
+							if (!country) country = 'zz';
 
-					const answer = await route.func(req, res);
-					if (answer?.headers) res.headers(answer.headers);
-					if (answer?.cookies) {
-						let rootDomain: string | undefined = undefined;
-						if (answer.cookies?.domain) {
-							const parsedDomain = psl.parse(answer.cookies.domain);
-							if (parsedDomain?.['domain']) {
-								rootDomain = parsedDomain['domain'];
+							let referer = req.headers?.['origin'];
+							if (!referer) referer = req.headers?.['referer'];
+							if (!referer) referer = undefined;
+
+							req.country = country;
+							req.referer = referer;
+							req.userAgent = UAParser(req.headers['user-agent']);
+
+							if (Server.onRequest) {
+								await Server.onRequest(req, res);
 							}
 						}
 
-						if (answer.cookies.value === 'delete') {
-							res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
-						} else {
-							res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
-								httpOnly: true,
-								secure: true,
-								path: '/',
-								domain: rootDomain ? `.${rootDomain}` : undefined,
-								maxAge: answer.cookies?.options?.ageInMs || 3600,
-								sameSite: 'none',
-							});
+						if (route?.guards?.length) {
+							for (const guard of route.guards) {
+								const result = await guard(req);
+								if (!result) throw new ForbiddenError('You are not allowed');
+							}
 						}
-					}
+
+						const abortPromise = new Promise((_, reject) => {
+							if (signal.aborted) {
+								return reject(new HttpTimeoutError('AbortError'));
+							}
+							signal.addEventListener(
+								'abort',
+								() => {
+									reject(new HttpTimeoutError('AbortError'));
+								},
+								{ once: true },
+							);
+						});
+
+						const answer = (await Promise.race([route.func(req, res), abortPromise])) as RouteReply | Error;
+						if (answer instanceof Error) {
+							throw answer;
+						} else {
+							if (answer?.headers) res.headers(answer.headers);
+							if (answer?.cookies) {
+								let rootDomain: string | undefined = undefined;
+								if (answer.cookies?.domain) {
+									const parsedDomain = psl.parse(answer.cookies.domain);
+									if (parsedDomain?.['domain']) {
+										rootDomain = parsedDomain['domain'];
+									}
+								}
+
+								if (answer.cookies.value === 'delete') {
+									res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
+								} else {
+									res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
+										httpOnly: true,
+										secure: true,
+										path: '/',
+										domain: rootDomain ? `.${rootDomain}` : undefined,
+										maxAge: answer.cookies?.options?.ageInMs || 3600,
+										sameSite: 'none',
+									});
+								}
+							}
+
+							if (!skipAdditionalLogic) {
+								try {
+									if (Server?.onResponse) {
+										await Server.onResponse(req, res);
+									}
+								} catch (error: unknown) {
+									Container.get(Logger).error('onResponse', { error });
+								} finally {
+									Container.reset(req.id);
+								}
+							}
+
+							return { code: answer.statusCode, body: answer.body };
+						}
+					};
+
+					const executeWithTimeout = async (skipAdditionalLogic: boolean) => {
+						const timeout = 5000;
+						const controller = new AbortController();
+						const { signal } = controller;
+
+						const timer = setTimeout(() => {
+							controller.abort();
+						}, timeout);
+
+						req.raw.on('close', () => {
+							if (!signal.aborted) controller.abort();
+						});
+
+						try {
+							return await executeHandler(skipAdditionalLogic, signal);
+						} catch (error: unknown) {
+							if (error instanceof HttpTimeoutError) {
+								return { code: 504, body: { error: 'Gateway Timeout' } };
+							}
+
+							throw error;
+						} finally {
+							clearTimeout(timer);
+						}
+					};
 
 					if (Server.isHooksRequired(req)) {
-						try {
-							if (Server?.onResponse) {
-								await Server.onResponse(req, res);
+						const context = Registry.context;
+						await context.run({ requestId: req.id }, async () => {
+							try {
+								this.activeRequests++;
+								const answer = await executeWithTimeout(false);
+
+								res.code(answer.code);
+								res.send(answer.body);
+							} finally {
+								this.activeRequests--;
 							}
-						} catch (error: unknown) {
-							Container.get(Logger).error('onResponse', { error });
-						} finally {
-							Container.reset(req.id);
+						});
+					} else {
+						const answer = await executeWithTimeout(true);
 
-							const context = Registry.context.getStore();
-							if (!!context) this.activeRequests--;
-						}
+						res.code(answer.code);
+						res.send(answer.body);
 					}
-
-					res.code(answer.statusCode);
-					res.send(answer.body);
 				},
 			});
 		}

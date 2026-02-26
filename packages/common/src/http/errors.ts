@@ -1,5 +1,11 @@
 export class ForbiddenError extends Error {}
 
+export class HttpTimeoutError extends Error {
+	constructor(message: string, options?: { cause?: Error | unknown }) {
+		super(message, options);
+	}
+}
+
 export class HttpResponseError extends Error {
 	constructor(message: string, options?: { cause?: Error | unknown }) {
 		super(message, options);
