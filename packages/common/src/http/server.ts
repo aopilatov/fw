@@ -293,11 +293,8 @@ export class Server {
 			this.isServerReady(req, res);
 		});
 
-		const skipPaths = new Set(['/', '/_/readiness']);
-
-		server.addHook('onRequest', (request, reply, done) => {
-			if (request.method === 'OPTIONS' || skipPaths.has(request.url)) {
-				done();
+		server.addHook('onRequest', async (request, reply) => {
+			if (!Server.isHooksRequired(request)) {
 				return;
 			}
 
@@ -310,15 +307,39 @@ export class Server {
 				this.activeRequests++;
 			}
 
-			done();
+			let country!: string;
+			for (const header of this.customCountryHeaders) {
+				if (!country) country = request.headers?.[header] as string;
+			}
+			if (!country) country = 'zz';
+
+			let referer = request.headers?.['origin'];
+			if (!referer) referer = request.headers?.['referer'];
+			if (!referer) referer = undefined;
+
+			request.country = country;
+			request.referer = referer;
+			request.userAgent = UAParser(request.headers['user-agent']);
+
+			Registry.context.enterWith({ requestId: request.id });
+
+			if (Server.onRequest) {
+				await Server.onRequest(request, reply);
+			}
 		});
 
-		server.addHook('onResponse', async (request) => {
-			if (request.method === 'OPTIONS' || skipPaths.has(request.url)) return;
+		server.addHook('onResponse', async (request, reply) => {
+			if (!Server.isHooksRequired(request)) return;
+
+			if (Server?.onResponse) {
+				await Server.onResponse(request, reply);
+			}
 
 			if (this.maxConcurrentRequests) {
 				this.activeRequests--;
 			}
+
+			Container.reset(request.id);
 		});
 
 		server.addHook('onListen', async () => {
@@ -356,8 +377,8 @@ export class Server {
 	}
 
 	private static isHooksRequired(request: ServerRequest): boolean {
-		if (request.raw.method === 'OPTIONS') return false;
-		return !['/', '/_/readiness'].includes(request.raw.url);
+		if (request.method === 'OPTIONS') return false;
+		return !['/', '/_/readiness'].includes(request.url);
 	}
 
 	private static registerRoutes(server: ServerInstance) {
@@ -367,27 +388,7 @@ export class Server {
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
-					const executeHandler = async (skipAdditionalLogic: boolean, signal: AbortSignal) => {
-						if (!skipAdditionalLogic) {
-							let country!: string;
-							for (const header of this.customCountryHeaders) {
-								if (!country) country = req.headers?.[header] as string;
-							}
-							if (!country) country = 'zz';
-
-							let referer = req.headers?.['origin'];
-							if (!referer) referer = req.headers?.['referer'];
-							if (!referer) referer = undefined;
-
-							req.country = country;
-							req.referer = referer;
-							req.userAgent = UAParser(req.headers['user-agent']);
-
-							if (Server.onRequest) {
-								await Server.onRequest(req, res);
-							}
-						}
-
+					const executeHandler = async (signal: AbortSignal) => {
 						if (route?.guards?.length) {
 							for (const guard of route.guards) {
 								const result = await guard(req);
@@ -436,23 +437,11 @@ export class Server {
 								}
 							}
 
-							if (!skipAdditionalLogic) {
-								try {
-									if (Server?.onResponse) {
-										await Server.onResponse(req, res);
-									}
-								} catch (error: unknown) {
-									Container.get(Logger).error('onResponse', { error });
-								} finally {
-									Container.reset(req.id);
-								}
-							}
-
 							return { code: answer.statusCode, body: answer.body };
 						}
 					};
 
-					const executeWithTimeout = async (skipAdditionalLogic: boolean) => {
+					const executeWithTimeout = async () => {
 						const timeout = Server.isDev ? 500000 : 5000;
 						const controller = new AbortController();
 						const { signal } = controller;
@@ -466,7 +455,7 @@ export class Server {
 						});
 
 						try {
-							return await executeHandler(skipAdditionalLogic, signal);
+							return await executeHandler(signal);
 						} catch (error: unknown) {
 							if (error instanceof HttpTimeoutError) {
 								return { code: 504, body: { error: 'Gateway Timeout' } };
@@ -478,20 +467,10 @@ export class Server {
 						}
 					};
 
-					if (Server.isHooksRequired(req)) {
-						const context = Registry.context;
-						await context.run({ requestId: req.id }, async () => {
-							const answer = await executeWithTimeout(false);
+					const answer = await executeWithTimeout();
 
-							res.code(answer.code);
-							res.send(answer.body);
-						});
-					} else {
-						const answer = await executeWithTimeout(true);
-
-						res.code(answer.code);
-						res.send(answer.body);
-					}
+					res.code(answer.code);
+					res.send(answer.body);
 				},
 			});
 		}
