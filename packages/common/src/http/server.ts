@@ -293,55 +293,6 @@ export class Server {
 			this.isServerReady(req, res);
 		});
 
-		server.addHook('onRequest', async (request, reply) => {
-			if (!Server.isHooksRequired(request)) {
-				return;
-			}
-
-			if (this.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
-				reply.code(503).send('busy');
-				return;
-			}
-
-			if (this.maxConcurrentRequests) {
-				this.activeRequests++;
-			}
-
-			let country!: string;
-			for (const header of this.customCountryHeaders) {
-				if (!country) country = request.headers?.[header] as string;
-			}
-			if (!country) country = 'zz';
-
-			let referer = request.headers?.['origin'];
-			if (!referer) referer = request.headers?.['referer'];
-			if (!referer) referer = undefined;
-
-			request.country = country;
-			request.referer = referer;
-			request.userAgent = UAParser(request.headers['user-agent']);
-
-			Registry.context.enterWith({ requestId: request.id });
-
-			if (Server.onRequest) {
-				await Server.onRequest(request, reply);
-			}
-		});
-
-		server.addHook('onResponse', async (request, reply) => {
-			if (!Server.isHooksRequired(request)) return;
-
-			if (Server?.onResponse) {
-				await Server.onResponse(request, reply);
-			}
-
-			if (this.maxConcurrentRequests) {
-				this.activeRequests--;
-			}
-
-			Container.reset(request.id);
-		});
-
 		server.addHook('onListen', async () => {
 			this.isReady = true;
 		});
@@ -388,6 +339,86 @@ export class Server {
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
+					const executeOnRequest = async (request: ServerRequest<never>, reply: ServerResponse): Promise<boolean> => {
+						if (!Server.isHooksRequired(request)) {
+							return false;
+						}
+
+						if (this.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
+							reply.code(503).send('busy');
+							return false;
+						}
+
+						if (this.maxConcurrentRequests) {
+							this.activeRequests++;
+						}
+
+						try {
+							let country!: string;
+							for (const header of this.customCountryHeaders) {
+								if (!country) country = request.headers?.[header] as string;
+							}
+							if (!country) country = 'zz';
+
+							let referer = request.headers?.['origin'];
+							if (!referer) referer = request.headers?.['referer'];
+							if (!referer) referer = undefined;
+
+							request.country = country;
+							request.referer = referer;
+							request.userAgent = UAParser(request.headers['user-agent']);
+
+							if (Server.onRequest) {
+								await Server.onRequest(request, reply);
+							}
+
+							return true;
+						} catch (error) {
+							if (this.maxConcurrentRequests) {
+								this.activeRequests--;
+							}
+							throw error;
+						}
+					};
+
+					const executeOnResponse = async (request: ServerRequest<never>, reply: ServerResponse, accepted: boolean) => {
+						if (!Server.isHooksRequired(request)) return;
+
+						try {
+							if (Server?.onResponse) {
+								await Server.onResponse(request, reply);
+							}
+						} catch (error) {
+							Container.get(Logger).error('onResponse', { error });
+						} finally {
+							if (this.maxConcurrentRequests && accepted) {
+								this.activeRequests--;
+							}
+
+							Container.reset(request.id);
+						}
+					};
+
+					const executeInContext = async (request: ServerRequest<never>, reply: ServerResponse): Promise<RouteReply | undefined> => {
+						let answer: RouteReply | undefined;
+						let accepted = false;
+
+						const context = Registry.context;
+						await context.run({ requestId: req.id }, async () => {
+							try {
+								accepted = await executeOnRequest(request, reply);
+
+								if (accepted) {
+									answer = await route.func(request, reply);
+								}
+							} finally {
+								await executeOnResponse(request, reply, accepted);
+							}
+						});
+
+						return answer;
+					};
+
 					const executeHandler = async (signal: AbortSignal) => {
 						if (route?.guards?.length) {
 							for (const guard of route.guards) {
@@ -409,36 +440,40 @@ export class Server {
 							);
 						});
 
-						const answer = (await Promise.race([route.func(req, res), abortPromise])) as RouteReply | Error;
+						const answer = (await Promise.race([executeInContext(req, res), abortPromise])) as RouteReply | Error | undefined;
 						if (answer instanceof Error) {
 							throw answer;
-						} else {
-							if (answer?.headers) res.headers(answer.headers);
-							if (answer?.cookies) {
-								let rootDomain: string | undefined = undefined;
-								if (answer.cookies?.domain) {
-									const parsedDomain = psl.parse(answer.cookies.domain);
-									if (parsedDomain?.['domain']) {
-										rootDomain = parsedDomain['domain'];
-									}
-								}
+						}
 
-								if (answer.cookies.value === 'delete') {
-									res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
-								} else {
-									res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
-										httpOnly: true,
-										secure: true,
-										path: '/',
-										domain: rootDomain ? `.${rootDomain}` : undefined,
-										maxAge: answer.cookies?.options?.ageInMs || 3600,
-										sameSite: 'none',
-									});
+						if (!answer) {
+							return undefined;
+						}
+
+						if (answer.headers) res.headers(answer.headers);
+						if (answer.cookies) {
+							let rootDomain: string | undefined = undefined;
+							if (answer.cookies?.domain) {
+								const parsedDomain = psl.parse(answer.cookies.domain);
+								if (parsedDomain?.['domain']) {
+									rootDomain = parsedDomain['domain'];
 								}
 							}
 
-							return { code: answer.statusCode, body: answer.body };
+							if (answer.cookies.value === 'delete') {
+								res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
+							} else {
+								res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
+									httpOnly: true,
+									secure: true,
+									path: '/',
+									domain: rootDomain ? `.${rootDomain}` : undefined,
+									maxAge: answer.cookies?.options?.ageInMs || 3600,
+									sameSite: 'none',
+								});
+							}
 						}
+
+						return { code: answer.statusCode, body: answer.body };
 					};
 
 					const executeWithTimeout = async () => {
@@ -468,6 +503,10 @@ export class Server {
 					};
 
 					const answer = await executeWithTimeout();
+
+					if (!answer) {
+						return;
+					}
 
 					res.code(answer.code);
 					res.send(answer.body);
