@@ -293,6 +293,34 @@ export class Server {
 			this.isServerReady(req, res);
 		});
 
+		const skipPaths = new Set(['/', '/_/readiness']);
+
+		server.addHook('onRequest', (request, reply, done) => {
+			if (request.method === 'OPTIONS' || skipPaths.has(request.url)) {
+				done();
+				return;
+			}
+
+			if (this.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
+				reply.code(503).send('busy');
+				return;
+			}
+
+			if (this.maxConcurrentRequests) {
+				this.activeRequests++;
+			}
+
+			done();
+		});
+
+		server.addHook('onResponse', async (request) => {
+			if (request.method === 'OPTIONS' || skipPaths.has(request.url)) return;
+
+			if (this.maxConcurrentRequests) {
+				this.activeRequests--;
+			}
+		});
+
 		server.addHook('onListen', async () => {
 			this.isReady = true;
 		});
@@ -453,15 +481,10 @@ export class Server {
 					if (Server.isHooksRequired(req)) {
 						const context = Registry.context;
 						await context.run({ requestId: req.id }, async () => {
-							try {
-								this.activeRequests++;
-								const answer = await executeWithTimeout(false);
+							const answer = await executeWithTimeout(false);
 
-								res.code(answer.code);
-								res.send(answer.body);
-							} finally {
-								this.activeRequests--;
-							}
+							res.code(answer.code);
+							res.send(answer.body);
 						});
 					} else {
 						const answer = await executeWithTimeout(true);
