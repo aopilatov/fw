@@ -367,15 +367,15 @@ export class Server {
 						request.referer = referer;
 						request.userAgent = UAParser(request.headers['user-agent']);
 
+						if (Server.onRequest) {
+							await Server.onRequest(request, reply);
+						}
+
 						if (route?.guards?.length) {
 							for (const guard of route.guards) {
 								const result = await guard(request);
 								if (!result) throw new ForbiddenError('You are not allowed');
 							}
-						}
-
-						if (Server.onRequest) {
-							await Server.onRequest(request, reply);
 						}
 
 						return true;
