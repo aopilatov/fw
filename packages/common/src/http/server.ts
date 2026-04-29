@@ -353,35 +353,35 @@ export class Server {
 							this.activeRequests++;
 						}
 
-						try {
-							let country!: string;
-							for (const header of this.customCountryHeaders) {
-								if (!country) country = request.headers?.[header] as string;
-							}
-							if (!country) country = 'zz';
-
-							let referer = request.headers?.['origin'];
-							if (!referer) referer = request.headers?.['referer'];
-							if (!referer) referer = undefined;
-
-							request.country = country;
-							request.referer = referer;
-							request.userAgent = UAParser(request.headers['user-agent']);
-
-							if (Server.onRequest) {
-								await Server.onRequest(request, reply);
-							}
-
-							return true;
-						} catch (error) {
-							if (this.maxConcurrentRequests) {
-								this.activeRequests--;
-							}
-							throw error;
+						let country!: string;
+						for (const header of this.customCountryHeaders) {
+							if (!country) country = request.headers?.[header] as string;
 						}
+						if (!country) country = 'zz';
+
+						let referer = request.headers?.['origin'];
+						if (!referer) referer = request.headers?.['referer'];
+						if (!referer) referer = undefined;
+
+						request.country = country;
+						request.referer = referer;
+						request.userAgent = UAParser(request.headers['user-agent']);
+
+						if (route?.guards?.length) {
+							for (const guard of route.guards) {
+								const result = await guard(request);
+								if (!result) throw new ForbiddenError('You are not allowed');
+							}
+						}
+
+						if (Server.onRequest) {
+							await Server.onRequest(request, reply);
+						}
+
+						return true;
 					};
 
-					const executeOnResponse = async (request: ServerRequest<never>, reply: ServerResponse, accepted: boolean) => {
+					const executeOnResponse = async (request: ServerRequest<never>, reply: ServerResponse, accepted: boolean | undefined) => {
 						if (!Server.isHooksRequired(request)) return;
 
 						try {
@@ -391,7 +391,7 @@ export class Server {
 						} catch (error) {
 							Container.get(Logger).error('onResponse', { error });
 						} finally {
-							if (this.maxConcurrentRequests && accepted) {
+							if (this.maxConcurrentRequests && accepted !== false) {
 								this.activeRequests--;
 							}
 
@@ -401,7 +401,7 @@ export class Server {
 
 					const executeInContext = async (request: ServerRequest<never>, reply: ServerResponse): Promise<RouteReply | undefined> => {
 						let answer: RouteReply | undefined;
-						let accepted = false;
+						let accepted: boolean | undefined;
 
 						const context = Registry.context;
 						await context.run({ requestId: req.id }, async () => {
@@ -420,13 +420,6 @@ export class Server {
 					};
 
 					const executeHandler = async (signal: AbortSignal) => {
-						if (route?.guards?.length) {
-							for (const guard of route.guards) {
-								const result = await guard(req);
-								if (!result) throw new ForbiddenError('You are not allowed');
-							}
-						}
-
 						const abortPromise = new Promise((_, reject) => {
 							if (signal.aborted) {
 								return reject(new HttpTimeoutError('AbortError'));
