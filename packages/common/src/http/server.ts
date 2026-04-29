@@ -478,10 +478,6 @@ export class Server {
 							controller.abort();
 						}, timeout);
 
-						req.raw.on('close', () => {
-							if (!signal.aborted) controller.abort();
-						});
-
 						try {
 							return await executeHandler(signal);
 						} catch (error: unknown) {
