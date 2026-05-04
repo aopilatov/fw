@@ -237,6 +237,16 @@ export class Server {
 		return Server;
 	}
 
+	private static funcIsGuardCallback(fnc: unknown): fnc is GuardCallback {
+		if (typeof fnc !== 'function') return false;
+		return fnc.length === 1;
+	}
+
+	private static funcIsRouteFunc(fnc: unknown): fnc is GuardCallback {
+		if (typeof fnc !== 'function') return false;
+		return fnc.length === 2;
+	}
+
 	public static async start(): Promise<ServerInstance> {
 		if (this.isInitialized) throw new Error('Server is already initialized');
 		this.isInitialized = true;
@@ -286,15 +296,62 @@ export class Server {
 		}
 
 		server.get('/', (req, res) => {
-			this.isServerReady(req, res);
+			if (this?.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
+				return res.code(503).send('busy');
+			}
+
+			return res.code(200).send('ok');
 		});
 
 		server.get('/_/readiness', (req, res) => {
-			this.isServerReady(req, res);
+			if (!this.isReady) {
+				return res.code(500).send('not ok');
+			}
+
+			return res.code(200).send('ok');
 		});
 
 		server.addHook('onListen', async () => {
 			this.isReady = true;
+		});
+
+		server.addHook('onRequest', (req, reply, done) => {
+			if (!Server.isHooksRequired(req)) return done();
+
+			let country = 'zz';
+			for (const headerName of this.customCountryHeaders) {
+				const raw = req.headers[headerName.toLowerCase()];
+				const value = Array.isArray(raw) ? raw[0] : raw;
+				if (value && value.trim()) {
+					country = value.trim();
+					break;
+				}
+			}
+			req.country = country.toLowerCase();
+
+			const originRaw = req.headers['origin'];
+			const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
+			if (originValue && originValue.trim()) {
+				req.referer = originValue.trim();
+			} else {
+				const refererRaw = req.headers['referer'];
+				const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
+				req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
+			}
+
+			req.userAgent = UAParser(req.headers['user-agent']);
+
+			this.activeRequests++;
+
+			Registry.context.run({ requestId: req.id }, () => done());
+		});
+
+		server.addHook('onResponse', (req, reply, done) => {
+			if (!Server.isHooksRequired(req)) return done();
+
+			this.activeRequests--;
+			Container.reset(req.id);
+			done();
 		});
 
 		Server.registerRoutes(server);
@@ -315,202 +372,64 @@ export class Server {
 		return server;
 	}
 
-	private static isServerReady(req: ServerRequest, res: ServerResponse) {
-		if (this?.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
-			return res.code(503).send('busy');
-		}
-
-		if (this.isReady) {
-			return res.code(200).send('ok');
-		}
-
-		return res.code(500).send('not ok');
-	}
-
 	private static isHooksRequired(request: ServerRequest): boolean {
 		if (request.method === 'OPTIONS') return false;
-		return !['/', '/_/readiness'].includes(request.url);
+		const path = request.url.split('?', 1)[0];
+		return !['/', '/_/readiness'].includes(path);
 	}
 
 	private static registerRoutes(server: ServerInstance) {
 		for (const route of Server.routes) {
+			if (!route.enabled) continue;
 			server.route({
 				method: route.method.toLowerCase(),
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
-					const executeOnRequest = async (request: ServerRequest<never>, reply: ServerResponse): Promise<boolean> => {
-						if (!Server.isHooksRequired(request)) {
-							return false;
-						}
-
-						if (this.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
-							reply.code(503).send('busy');
-							return false;
-						}
-
-						if (this.maxConcurrentRequests) {
-							this.activeRequests++;
-						}
-
-						let country!: string;
-						for (const header of this.customCountryHeaders) {
-							if (!country) country = request.headers?.[header] as string;
-						}
-						if (!country) country = 'zz';
-
-						let referer = request.headers?.['origin'];
-						if (!referer) referer = request.headers?.['referer'];
-						if (!referer) referer = undefined;
-
-						request.country = country;
-						request.referer = referer;
-						request.userAgent = UAParser(request.headers['user-agent']);
-
-						if (Server.onRequest) {
-							await Server.onRequest(request, reply);
-						}
-
-						if (route?.guards?.length) {
-							for (const guard of route.guards) {
-								const result = await guard(request);
-								if (!result) throw new ForbiddenError('You are not allowed');
-							}
-						}
-
-						return true;
-					};
-
-					const executeOnResponse = async (request: ServerRequest<never>, reply: ServerResponse, accepted: boolean | undefined) => {
-						if (!Server.isHooksRequired(request)) return;
-
-						try {
-							if (Server?.onResponse) {
-								await Server.onResponse(request, reply);
-							}
-						} catch (error) {
-							Container.get(Logger).error('onResponse', { error });
-						} finally {
-							if (this.maxConcurrentRequests && accepted !== false) {
-								this.activeRequests--;
-							}
-
-							Container.reset(request.id);
-						}
-					};
-
-					const executeInContext = async (request: ServerRequest<never>, reply: ServerResponse): Promise<RouteReply | undefined> => {
-						let answer: RouteReply | undefined;
-						let accepted: boolean | undefined;
-
-						const context = Registry.context;
-						await context.run({ requestId: req.id }, async () => {
-							try {
-								accepted = await executeOnRequest(request, reply);
-
-								if (accepted) {
-									answer = await route.func(request, reply);
-								}
-							} finally {
-								await executeOnResponse(request, reply, accepted);
-							}
-						});
-
-						return answer;
-					};
-
-					const executeHandler = async (signal: AbortSignal) => {
-						const abortPromise = new Promise((_, reject) => {
-							if (signal.aborted) {
-								return reject(new HttpTimeoutError('AbortError'));
-							}
-							signal.addEventListener(
-								'abort',
-								() => {
-									reject(new HttpTimeoutError('AbortError'));
-								},
-								{ once: true },
-							);
-						});
-
-						const answer = (await Promise.race([executeInContext(req, res), abortPromise])) as RouteReply | Error | undefined;
-						if (answer instanceof Error) {
-							throw answer;
-						}
-
-						if (!answer) {
-							return undefined;
-						}
-
-						if (answer.headers) res.headers(answer.headers);
-						if (answer.cookies) {
-							let rootDomain: string | undefined = undefined;
-							if (answer.cookies?.domain) {
-								const parsedDomain = psl.parse(answer.cookies.domain);
-								if (parsedDomain?.['domain']) {
-									rootDomain = parsedDomain['domain'];
-								}
-							}
-
-							if (answer.cookies.value === 'delete') {
-								res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
-							} else {
-								res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
-									httpOnly: true,
-									secure: true,
-									path: '/',
-									domain: rootDomain ? `.${rootDomain}` : undefined,
-									maxAge: answer.cookies?.options?.ageInMs || 3600,
-									sameSite: 'none',
-								});
-							}
-						}
-
-						return { code: answer.statusCode, body: answer.body };
-					};
-
-					const executeWithTimeout = async () => {
-						const timeout = Server.isDev ? 500000 : 5000;
-						const controller = new AbortController();
-						const { signal } = controller;
-
-						const timer = setTimeout(() => {
-							controller.abort();
-						}, timeout);
-
-						try {
-							return await executeHandler(signal);
-						} catch (error: unknown) {
-							if (error instanceof HttpTimeoutError) {
-								return { code: 504, body: { error: 'Gateway Timeout' } };
-							}
-
-							throw error;
-						} finally {
-							clearTimeout(timer);
-						}
-					};
-
-					const answer = await executeWithTimeout();
-
-					if (!answer) {
-						return;
+					if (Server.onRequest) {
+						await Server.onRequest(req, res);
 					}
 
-					res.code(answer.code);
-					res.send(answer.body);
+					if (route.guards?.length) {
+						for (const guard of route.guards) {
+							const result = await guard(req);
+							if (!result) throw new ForbiddenError('You are not allowed');
+						}
+					}
+
+					const answer = await route.func(req, res);
+
+					if (Server.onResponse) {
+						await Server.onResponse(req, res);
+					}
+
+					if (answer.headers) res.headers(answer.headers);
+					if (answer.cookies) {
+						let rootDomain: string | undefined = undefined;
+						if (answer.cookies?.domain) {
+							const parsedDomain = psl.parse(answer.cookies.domain);
+							if (parsedDomain?.['domain']) {
+								rootDomain = parsedDomain['domain'];
+							}
+						}
+
+						if (answer.cookies.value === 'delete') {
+							res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
+						} else {
+							res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
+								httpOnly: true,
+								secure: true,
+								path: '/',
+								domain: rootDomain ? `.${rootDomain}` : undefined,
+								maxAge: answer.cookies?.options?.ageInMs || 3600,
+								sameSite: 'none',
+							});
+						}
+					}
+
+					res.code(answer.statusCode).send(answer.body);
 				},
 			});
 		}
-	}
-
-	private static funcIsGuardCallback(fnc: unknown): fnc is GuardCallback {
-		if (typeof fnc !== 'function') return false;
-		return fnc.length === 1;
-	}
-
-	private static funcIsRouteFunc(fnc: unknown): fnc is GuardCallback {
-		if (typeof fnc !== 'function') return false;
-		return fnc.length === 2;
 	}
 }
