@@ -379,7 +379,20 @@ export class Server {
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
+					if (Server.onRequest) {
+						await Server.onRequest(req, res);
+					}
 
+					if (route.guards?.length) {
+						for (const guard of route.guards) {
+							const result = await guard(req);
+							if (!result) throw new ForbiddenError('You are not allowed');
+						}
+					}
+
+					if (Server.onResponse) {
+						await Server.onResponse(req, res);
+					}
 				},
 			});
 		}
