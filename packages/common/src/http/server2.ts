@@ -425,7 +425,7 @@ export class Server {
 						}
 					}
 
-					return { code: answer.statusCode, body: answer.body };
+					res.code(answer.statusCode).send(answer.body);
 				},
 			});
 		}
