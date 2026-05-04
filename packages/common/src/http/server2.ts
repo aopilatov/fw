@@ -315,8 +315,8 @@ export class Server {
 			this.isReady = true;
 		});
 
-		server.addHook('onRequest', async (req) => {
-			if (!Server.isHooksRequired(req)) return;
+		server.addHook('onRequest', (req, reply, done) => {
+			if (!Server.isHooksRequired(req)) return done();
 
 			let country = 'zz';
 			for (const headerName of this.customCountryHeaders) {
@@ -340,6 +340,13 @@ export class Server {
 			}
 
 			req.userAgent = UAParser(req.headers['user-agent']);
+
+			Registry.context.run({ requestId: req.id }, () => done());
+		});
+
+		server.addHook('onResponse', async (req) => {
+			if (!Server.isHooksRequired(req)) return;
+			Container.reset(req.id);
 		});
 
 		Server.registerRoutes(server);
@@ -395,6 +402,10 @@ export class Server {
 
 		Нужно записать request referer изначально из origin. Если пусто то из referer
 
+
+		В файле /Users/oleg/WebstormProjects/fw/packages/common/src/http/server2.ts
+		в onRequest получи контекст из Registry.context и запусти его с requestId.
+		В onResponse заверши его.
 
 
 
