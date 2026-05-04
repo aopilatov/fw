@@ -395,9 +395,37 @@ export class Server {
 						}
 					}
 
+					const answer = await route.func(req, res);
+
 					if (Server.onResponse) {
 						await Server.onResponse(req, res);
 					}
+
+					if (answer.headers) res.headers(answer.headers);
+					if (answer.cookies) {
+						let rootDomain: string | undefined = undefined;
+						if (answer.cookies?.domain) {
+							const parsedDomain = psl.parse(answer.cookies.domain);
+							if (parsedDomain?.['domain']) {
+								rootDomain = parsedDomain['domain'];
+							}
+						}
+
+						if (answer.cookies.value === 'delete') {
+							res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
+						} else {
+							res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
+								httpOnly: true,
+								secure: true,
+								path: '/',
+								domain: rootDomain ? `.${rootDomain}` : undefined,
+								maxAge: answer.cookies?.options?.ageInMs || 3600,
+								sameSite: 'none',
+							});
+						}
+					}
+
+					return { code: answer.statusCode, body: answer.body };
 				},
 			});
 		}
