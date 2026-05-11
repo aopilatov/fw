@@ -299,6 +299,10 @@ export class Server {
 			this.isReady = true;
 		});
 
+		server.options('*', (_, res) => {
+			return res.code(204).send();
+		});
+
 		server.get('/', (req, res) => {
 			const activeRequests = Registry.getContextCount();
 			if (this?.maxConcurrentRequests && activeRequests >= this.maxConcurrentRequests) {
