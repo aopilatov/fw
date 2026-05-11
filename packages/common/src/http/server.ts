@@ -279,12 +279,12 @@ export class Server {
 			genReqId: (req) => crypto.randomUUID(),
 		});
 
-		server.register(cookie, { secret: this.cookieSecret });
-		server.register(fastifyIp, !this.customIpHeaders.length ? {} : { order: this?.customIpHeaders });
+		await server.register(cookie, { secret: this.cookieSecret });
+		await server.register(fastifyIp, !this.customIpHeaders.length ? {} : { order: this?.customIpHeaders });
 
 		if (this.origin.length) {
-			server.register(helmet);
-			server.register(cors, {
+			await server.register(helmet);
+			await server.register(cors, {
 				origin: this.origin,
 				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
 				credentials: true,
