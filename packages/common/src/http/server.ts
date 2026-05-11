@@ -342,9 +342,9 @@ export class Server {
 			req.userAgent = UAParser(req.headers['user-agent']);
 
 			this.activeRequests++;
+
 			reply.raw.once('close', () => {
 				if (this.activeRequests > 0) this.activeRequests--;
-
 				Container.reset(req.id);
 			});
 
