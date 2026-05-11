@@ -69,6 +69,10 @@ export class Registry {
 		Registry.contextMap.delete(requestId);
 	}
 
+	public static getContextCount(): number {
+		return Registry.contextMap.size;
+	}
+
 	public static has<T>(instanceOf: InstanceOf, type: Constructable<T>): boolean;
 	public static has<T>(instanceOf: InstanceOf, id: Token<T>): boolean;
 	public static has<T>(instanceOf: InstanceOf, identifier: ServiceIdentifier<T>): boolean {

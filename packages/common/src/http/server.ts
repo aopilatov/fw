@@ -48,7 +48,6 @@ export class Server {
 	private static isDev: boolean = true;
 	private static isInitialized: boolean = false;
 	private static isReady: boolean = false;
-	private static activeRequests: number = 0;
 
 	private static readonly routes: Route[] = [];
 
@@ -297,7 +296,8 @@ export class Server {
 		}
 
 		server.get('/', (req, res) => {
-			if (this?.maxConcurrentRequests && this.activeRequests >= this.maxConcurrentRequests) {
+			const activeRequests = Registry.getContextCount();
+			if (this?.maxConcurrentRequests && activeRequests >= this.maxConcurrentRequests) {
 				return res.code(503).send('busy');
 			}
 
@@ -383,57 +383,56 @@ export class Server {
 		}
 	}
 
-	private static async hookOnRequest(req, reply): Promise<void> {
-		const ctx: Context = {};
-		await Registry.runWithContext(req.id, ctx, async () => done());
-	}
-
 	private static async executeRoute(route: Route, req: ServerRequest<never>, res: ServerResponse): Promise<RouteReply | undefined> {
 		let answer: RouteReply | undefined = undefined;
+		let ctxRequestId: string | undefined;
 
 		try {
-			this.activeRequests++;
+			ctxRequestId = req.id;
+			const ctx: Context = {};
 
-			let country = 'zz';
-			for (const headerName of this.customCountryHeaders) {
-				const raw = req.headers[headerName.toLowerCase()];
-				const value = Array.isArray(raw) ? raw[0] : raw;
-				if (value && value.trim()) {
-					country = value.trim();
-					break;
+			answer = await Registry.runWithContext(ctxRequestId, ctx, async () => {
+				let country = 'zz';
+				for (const headerName of this.customCountryHeaders) {
+					const raw = req.headers[headerName.toLowerCase()];
+					const value = Array.isArray(raw) ? raw[0] : raw;
+					if (value && value.trim()) {
+						country = value.trim();
+						break;
+					}
 				}
-			}
-			req.country = country.toLowerCase();
+				req.country = country.toLowerCase();
 
-			const originRaw = req.headers['origin'];
-			const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
-			if (originValue && originValue.trim()) {
-				req.referer = originValue.trim();
-			} else {
-				const refererRaw = req.headers['referer'];
-				const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
-				req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
-			}
-
-			req.userAgent = UAParser(req.headers['user-agent']);
-
-			if (Server.onRequest) {
-				await Server.onRequest(req, res);
-			}
-
-			if (route.guards?.length) {
-				for (const guard of route.guards) {
-					const result = await guard(req);
-					if (!result) throw new ForbiddenError('You are not allowed');
+				const originRaw = req.headers['origin'];
+				const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
+				if (originValue && originValue.trim()) {
+					req.referer = originValue.trim();
+				} else {
+					const refererRaw = req.headers['referer'];
+					const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
+					req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
 				}
-			}
 
-			answer = await route.func(req, res);
+				req.userAgent = UAParser(req.headers['user-agent']);
+
+				if (Server.onRequest) {
+					await Server.onRequest(req, res);
+				}
+
+				if (route.guards?.length) {
+					for (const guard of route.guards) {
+						const result = await guard(req);
+						if (!result) throw new ForbiddenError('You are not allowed');
+					}
+				}
+
+				return await route.func(req, res);
+			});
 		} finally {
-			this.activeRequests--;
 			if (Server.onResponse) {
 				await Server.onResponse(req, res);
 			}
+			if (ctxRequestId) Registry.disposeContext(ctxRequestId);
 		}
 
 		return answer;
