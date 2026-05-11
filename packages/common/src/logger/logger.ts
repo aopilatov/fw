@@ -174,7 +174,11 @@ export class Logger {
 
 		const meta: Record<string, unknown> = {};
 		if (requestId) meta.requestId = requestId;
-		if (contextStore) Object.assign(meta, omit(contextStore, ['defers', 'hasTransaction']));
+		if (contextStore) {
+			for (const [key, value] of Object.entries(omit(contextStore, ['defers', 'hasTransaction']))) {
+				if (value !== undefined) meta[key] = value;
+			}
+		}
 
 		return [meta, ...values];
 	}

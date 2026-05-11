@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import { Container, Registry } from '../di';
+import { Container, Context, Registry } from '../di';
 import { Logger } from '../logger';
 
 export abstract class WorkerAbstraction {
@@ -40,8 +40,11 @@ export abstract class WorkerAbstraction {
 			return result;
 		};
 
+		const parentCorrelationId = Registry.getCurrentContext()?.correlationId ?? Registry.getCurrentRequestId();
+		const ctx: Context = parentCorrelationId ? { correlationId: parentCorrelationId } : {};
+
 		try {
-			return await Registry.runWithContext(containerName, {}, execute);
+			return await Registry.runWithContext(containerName, ctx, execute);
 		} finally {
 			Registry.disposeContext(containerName);
 		}

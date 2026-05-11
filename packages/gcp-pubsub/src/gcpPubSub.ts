@@ -3,7 +3,7 @@ import process from 'node:process';
 
 import { ClientConfig, PubSub as GcpPubSubClient, Message } from '@google-cloud/pubsub';
 
-import { Container, Logger, Registry, SystemService } from '@fw/common';
+import { Container, Context, Logger, Registry, SystemService } from '@fw/common';
 
 import { GcpPubSubError } from './errors';
 import { GcpPubSubConfig, GcpPubSubSchema, GcpPubSubTopicData, GcpPubSubLimitConfig } from './types';
@@ -72,9 +72,20 @@ export class GcpPubSub {
 			publish: async (data: GcpPubSubSchema[T]) => {
 				if (this.isTest) return;
 
-				const dataBuffer = Buffer.from(JSON.stringify(data));
+				const currentRequestId = Registry.getCurrentRequestId();
+				const currentCorrelationId = Registry.getCurrentContext()?.correlationId;
+				const outgoingRequestId = currentRequestId ?? crypto.randomUUID();
+				const outgoingCorrelationId = currentCorrelationId ?? outgoingRequestId;
+
+				const payload = {
+					...data,
+					requestId: outgoingRequestId,
+					correlationId: outgoingCorrelationId,
+				};
+				const dataBuffer = Buffer.from(JSON.stringify(payload));
+
 				if (process.env?.NODE_ENV === 'test') {
-					Container.get(Logger).info('PubSub message', data);
+					Container.get(Logger).info('PubSub message', payload);
 					return;
 				}
 
@@ -128,9 +139,10 @@ export class GcpPubSub {
 
 							const incomingCorrelationId = (data as Record<string, unknown>).correlationId;
 							const correlationId = typeof incomingCorrelationId === 'string' ? incomingCorrelationId : undefined;
+							const ctx: Context = correlationId ? { correlationId } : {};
 
 							ctxRequestId = crypto.randomUUID();
-							await Registry.runWithContext(ctxRequestId, { correlationId }, async () => {
+							await Registry.runWithContext(ctxRequestId, ctx, async () => {
 								await handler(data);
 								message.ack();
 							});
