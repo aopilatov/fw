@@ -295,6 +295,10 @@ export class Server {
 			server.setErrorHandler(this.errorHandler);
 		}
 
+		server.addHook('onListen', async () => {
+			this.isReady = true;
+		});
+
 		server.get('/', (req, res) => {
 			const activeRequests = Registry.getContextCount();
 			if (this?.maxConcurrentRequests && activeRequests >= this.maxConcurrentRequests) {
@@ -330,12 +334,6 @@ export class Server {
 		return server;
 	}
 
-	private static isHooksRequired(request: ServerRequest): boolean {
-		if (request.method === 'OPTIONS') return false;
-		const path = request.url.split('?', 1)[0];
-		return !['/', '/_/readiness'].includes(path);
-	}
-
 	private static registerRoutes(server: ServerInstance) {
 		for (const route of Server.routes) {
 			if (!route.enabled) continue;
@@ -344,12 +342,7 @@ export class Server {
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
-					let answer: RouteReply | undefined;
-					if (Server.isHooksRequired(req)) {
-						answer = await this.executeRoute(route, req, res);
-					} else {
-						answer = await route.func(req, res);
-					}
+					const answer = await this.executeRoute(route, req, res);
 
 					if (!answer) throw new Error('not ok');
 
@@ -432,7 +425,12 @@ export class Server {
 			if (Server.onResponse) {
 				await Server.onResponse(req, res);
 			}
-			if (ctxRequestId) Registry.disposeContext(ctxRequestId);
+
+			await Container.get(Request).executeDefers();
+			if (ctxRequestId) {
+				Registry.disposeContext(ctxRequestId);
+				Container.reset(ctxRequestId);
+			}
 		}
 
 		return answer;

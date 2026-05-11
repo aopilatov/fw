@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import { Container, Context, Registry } from '../di';
 import { Logger } from '../logger';
+import { Request } from '../request';
 
 export abstract class WorkerAbstraction {
 	public abstract startup(): void | Promise<void>;
@@ -29,12 +30,13 @@ export abstract class WorkerAbstraction {
 				Container.get(Logger).error(prefix, e?.['message']);
 				throw e;
 			} finally {
+				await Container.get(Request).executeDefers();
+
 				if (onDestroy) {
 					await onDestroy(containerName);
 				}
 
 				Container.get(Logger).info('finished');
-				Container.reset(containerName);
 			}
 
 			return result;
@@ -47,6 +49,7 @@ export abstract class WorkerAbstraction {
 			return await Registry.runWithContext(containerName, ctx, execute);
 		} finally {
 			Registry.disposeContext(containerName);
+			Container.reset(containerName);
 		}
 	}
 }
