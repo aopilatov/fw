@@ -24,6 +24,7 @@ export type GcpPubSubLimitConfig = {
 
 export interface GcpPubSubMessage {
 	requestId: string;
+	correlationId?: string;
 	type: string;
 	data: unknown;
 }

@@ -40,12 +40,10 @@ export abstract class WorkerAbstraction {
 			return result;
 		};
 
-		const context = Registry.context.getStore();
-		if (context) {
-			context.requestId = containerName;
-			return await execute();
-		} else {
-			return await Registry.context.run({ requestId: containerName }, execute);
+		try {
+			return await Registry.runWithContext(containerName, {}, execute);
+		} finally {
+			Registry.disposeContext(containerName);
 		}
 	}
 }

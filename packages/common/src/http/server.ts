@@ -344,19 +344,22 @@ export class Server {
 
 			this.activeRequests++;
 
-			const ctx: Context = { requestId: req.id };
+			const ctx: Context = {};
 
 			reply.raw.once('close', () => {
 				if (this.activeRequests > 0) this.activeRequests--;
-				Registry.context.run(ctx, () => {
+				Registry.runWithContext(req.id, ctx, () => {
 					Container.getSystem(Request)
 						.executeDefers()
 						.catch((error) => Container.get(Logger).error('Request defers failed', { error }))
-						.finally(() => Container.reset(req.id));
+						.finally(() => {
+							Container.reset(req.id);
+							Registry.disposeContext(req.id);
+						});
 				});
 			});
 
-			Registry.context.run(ctx, () => done());
+			Registry.runWithContext(req.id, ctx, () => done());
 		});
 
 		Server.registerRoutes(server);

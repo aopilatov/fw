@@ -47,7 +47,6 @@ export class Token<T> {
 export type Func = Function;
 
 export type Context = {
-	requestId?: string;
 	correlationId?: string;
 	defers?: (() => void | Promise<void>)[];
 	hasTransaction?: boolean;

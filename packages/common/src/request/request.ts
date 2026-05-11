@@ -4,7 +4,7 @@ import { Logger } from '../logger';
 @SystemService()
 export class Request {
 	public get id(): string {
-		const requestId = this.context?.requestId;
+		const requestId = Registry.getCurrentRequestId();
 		if (!requestId) {
 			throw new Error('No requestId found');
 		}
@@ -13,7 +13,7 @@ export class Request {
 	}
 
 	private get context(): Context {
-		const store = Registry.context.getStore();
+		const store = Registry.getCurrentContext();
 		if (!store) {
 			throw new Error('No transactional context found');
 		}

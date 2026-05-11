@@ -62,16 +62,16 @@ export class Pg {
 	}
 
 	public getPoolClient(slaveName?: string): PoolClient {
-		const context = Registry.context.getStore() || {};
-		if (!context?.requestId) {
+		const requestId = Registry.getCurrentRequestId();
+		if (!requestId) {
 			throw new PgError('Request id is not defined');
 		}
 
 		let client: PoolClient | undefined;
 		if (slaveName) {
-			client = this.readClients.get(`${context.requestId}/${slaveName}`);
+			client = this.readClients.get(`${requestId}/${slaveName}`);
 		} else {
-			client = this.clients.get(context.requestId);
+			client = this.clients.get(requestId);
 		}
 
 		if (!client) {
@@ -87,33 +87,33 @@ export class Pg {
 	}
 
 	public getMasterClient(): PgWriteClient {
-		const context = Registry.context.getStore() || {};
-		if (!context?.requestId) {
+		const requestId = Registry.getCurrentRequestId();
+		if (!requestId) {
 			throw new PgError('Request id is not defined');
 		}
 
-		let hubMaster = this.hubMasters.get(context.requestId);
+		let hubMaster = this.hubMasters.get(requestId);
 		if (!hubMaster) {
 			hubMaster = new PgWriteClient();
-			this.hubMasters.set(context.requestId, hubMaster);
-			this.ensureCleanupRegistered(context.requestId);
+			this.hubMasters.set(requestId, hubMaster);
+			this.ensureCleanupRegistered(requestId);
 		}
 
 		return hubMaster;
 	}
 
 	public getSlaveClient(slaveName: string): PgReadClient {
-		const context = Registry.context.getStore() || {};
-		if (!context?.requestId) {
+		const requestId = Registry.getCurrentRequestId();
+		if (!requestId) {
 			throw new PgError('Request id is not defined');
 		}
 
-		const hubKey = `${context.requestId}/${slaveName}`;
+		const hubKey = `${requestId}/${slaveName}`;
 		let hubSlave = this.hubSlaves.get(hubKey);
 		if (!hubSlave) {
 			hubSlave = new PgReadClient(slaveName);
 			this.hubSlaves.set(hubKey, hubSlave);
-			this.ensureCleanupRegistered(context.requestId);
+			this.ensureCleanupRegistered(requestId);
 		}
 
 		return hubSlave;

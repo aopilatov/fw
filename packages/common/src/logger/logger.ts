@@ -168,12 +168,15 @@ export class Logger {
 	}
 
 	private formatValues(values: unknown[]): unknown[] {
-		const contextStore = Registry.context.getStore();
-		if (contextStore) {
-			return [omit(contextStore, ['defers', 'hasTransaction']), ...values];
-		}
+		const requestId = Registry.getCurrentRequestId();
+		const contextStore = Registry.getCurrentContext();
+		if (!requestId && !contextStore) return values;
 
-		return values;
+		const meta: Record<string, unknown> = {};
+		if (requestId) meta.requestId = requestId;
+		if (contextStore) Object.assign(meta, omit(contextStore, ['defers', 'hasTransaction']));
+
+		return [meta, ...values];
 	}
 
 	private get() {

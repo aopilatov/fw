@@ -1,4 +1,4 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
+import crypto from 'node:crypto';
 import process from 'node:process';
 
 import { ClientConfig, PubSub as GcpPubSubClient, Message } from '@google-cloud/pubsub';
@@ -119,14 +119,18 @@ export class GcpPubSub {
 				topic!.subscriptions.set(name, {
 					subscription: topic!.topic.subscription(name, limitConfig ? { flowControl: limitConfig } : undefined),
 					callback: async (message) => {
+						let ctxRequestId: string | undefined;
 						try {
 							const data: GcpPubSubSchema[T] = JSON.parse(Buffer.from(message.data).toString());
 							if (!('requestId' in data) || typeof data.requestId !== 'string') {
 								throw new GcpPubSubError(`Message does not have requestId`);
 							}
 
-							const context = Registry.context;
-							await context.run({ correlationId: data.requestId }, async () => {
+							const incomingCorrelationId = (data as Record<string, unknown>).correlationId;
+							const correlationId = typeof incomingCorrelationId === 'string' ? incomingCorrelationId : undefined;
+
+							ctxRequestId = crypto.randomUUID();
+							await Registry.runWithContext(ctxRequestId, { correlationId }, async () => {
 								await handler(data);
 								message.ack();
 							});
@@ -138,6 +142,8 @@ export class GcpPubSub {
 								Container.get(Logger).fatal(`Ignore message:`, { error, message: message.data });
 								message.ack();
 							}
+						} finally {
+							if (ctxRequestId) Registry.disposeContext(ctxRequestId);
 						}
 					},
 				});

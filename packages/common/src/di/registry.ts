@@ -18,7 +18,8 @@ import {
 import { ServiceInstance } from './types/services/serviceInstance';
 
 export class Registry {
-	private static readonly processContext: AsyncLocalStorage<Context> = new AsyncLocalStorage();
+	private static readonly processContext: AsyncLocalStorage<string> = new AsyncLocalStorage();
+	private static readonly contextMap: Map<string, Context> = new Map();
 	private static readonly globalInstance: ContainerGlobalInstance = new ContainerGlobalInstance();
 	private static readonly instances: ContainerInstance[] = [];
 
@@ -46,8 +47,26 @@ export class Registry {
 		await Promise.all(Registry.asyncRegistrators.map((registrator) => registrator()));
 	}
 
-	public static get context() {
-		return Registry.processContext;
+	public static getCurrentRequestId(): string | undefined {
+		return Registry.processContext.getStore();
+	}
+
+	public static getCurrentContext(): Context | undefined {
+		const id = Registry.processContext.getStore();
+		if (!id) return undefined;
+		return Registry.contextMap.get(id);
+	}
+
+	public static runWithContext<T>(requestId: string, context: Context, fn: () => T): T {
+		if (!requestId) {
+			throw new DIError('runWithContext requires a non-empty requestId');
+		}
+		Registry.contextMap.set(requestId, context);
+		return Registry.processContext.run(requestId, fn);
+	}
+
+	public static disposeContext(requestId: string): void {
+		Registry.contextMap.delete(requestId);
 	}
 
 	public static has<T>(instanceOf: InstanceOf, type: Constructable<T>): boolean;
