@@ -347,7 +347,6 @@ export class Server {
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
 					const answer = await this.executeRoute(route, req, res);
-
 					if (!answer) throw new Error('not ok');
 
 					if (answer.headers) res.headers(answer.headers);
@@ -381,14 +380,11 @@ export class Server {
 	}
 
 	private static async executeRoute(route: Route, req: ServerRequest<never>, res: ServerResponse): Promise<RouteReply | undefined> {
-		let answer: RouteReply | undefined = undefined;
-		let ctxRequestId: string | undefined;
+		const ctxRequestId = req.id;
+		const ctx: Context = {};
 
-		try {
-			ctxRequestId = req.id;
-			const ctx: Context = {};
-
-			answer = await Registry.runWithContext(ctxRequestId, ctx, async () => {
+		const answer = await Registry.runWithContext(ctxRequestId, ctx, async () => {
+			try {
 				let country = 'zz';
 				for (const headerName of this.customCountryHeaders) {
 					const raw = req.headers[headerName.toLowerCase()];
@@ -424,18 +420,17 @@ export class Server {
 				}
 
 				return await route.func(req, res);
-			});
-		} finally {
-			if (Server.onResponse) {
-				await Server.onResponse(req, res);
-			}
+			} finally {
+				if (Server.onResponse) {
+					await Server.onResponse(req, res);
+				}
 
-			await Container.get(Request).executeDefers();
-			if (ctxRequestId) {
-				Registry.disposeContext(ctxRequestId);
-				Container.reset(ctxRequestId);
+				await Container.get(Request).executeDefers();
 			}
-		}
+		});
+
+		Registry.disposeContext(ctxRequestId);
+		Container.reset(ctxRequestId);
 
 		return answer;
 	}
