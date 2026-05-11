@@ -1,6 +1,6 @@
 import { Pool, PoolClient, PoolConfig } from 'pg';
 
-import { Container, Logger, Registry, SystemService } from '@fw/common';
+import { Container, Logger, Registry, Request, SystemService } from '@fw/common';
 
 import { PgError } from './errors';
 import { PgModel } from './model';
@@ -23,6 +23,8 @@ export class Pg {
 
 	private readonly hubMasters: Map<string, PgWriteClient> = new Map();
 	private readonly hubSlaves: Map<string, PgReadClient> = new Map();
+
+	private readonly pendingReleases: Set<string> = new Set();
 
 	public init(name: string, config: PgConfig, slavesConfigs?: Record<string, PoolConfig>): void {
 		const rewriteConfig: Record<string, unknown> = {};
@@ -94,6 +96,7 @@ export class Pg {
 		if (!hubMaster) {
 			hubMaster = new PgWriteClient();
 			this.hubMasters.set(context.requestId, hubMaster);
+			this.ensureCleanupRegistered(context.requestId);
 		}
 
 		return hubMaster;
@@ -105,10 +108,12 @@ export class Pg {
 			throw new PgError('Request id is not defined');
 		}
 
-		let hubSlave = this.hubSlaves.get(context.requestId);
+		const hubKey = `${context.requestId}/${slaveName}`;
+		let hubSlave = this.hubSlaves.get(hubKey);
 		if (!hubSlave) {
 			hubSlave = new PgReadClient(slaveName);
-			this.hubSlaves.set(context.requestId, hubSlave);
+			this.hubSlaves.set(hubKey, hubSlave);
+			this.ensureCleanupRegistered(context.requestId);
 		}
 
 		return hubSlave;
@@ -146,6 +151,7 @@ export class Pg {
 
 		const poolClient = await this.pool.connect();
 		this.clients.set(containerId, poolClient);
+		this.ensureCleanupRegistered(containerId);
 
 		return poolClient;
 	}
@@ -162,6 +168,7 @@ export class Pg {
 
 		const poolClient = await pool.connect();
 		this.readClients.set(`${containerId}/${slaveName}`, poolClient);
+		this.ensureCleanupRegistered(containerId);
 
 		return poolClient;
 	}
@@ -187,10 +194,55 @@ export class Pg {
 	}
 
 	public releaseAllReadClients(containerId: string): void {
-		const matchingKeys = [...this.readClients.keys()].filter((key) => key.startsWith(containerId));
-		for (const key of matchingKeys) {
+		const prefix = `${containerId}/`;
+		for (const key of [...this.readClients.keys()].filter((k) => k.startsWith(prefix))) {
 			this.readClients.get(key)!.release(true);
 			this.readClients.delete(key);
+		}
+		for (const key of [...this.hubSlaves.keys()].filter((k) => k.startsWith(prefix))) {
+			this.hubSlaves.delete(key);
+		}
+	}
+
+	public release(containerId: string): void {
+		this.pendingReleases.delete(containerId);
+
+		const client = this.clients.get(containerId);
+		if (client) {
+			try {
+				client.release(true);
+			} catch (error) {
+				Container.get(Logger).error('pg release master client failed', { error });
+			}
+			this.clients.delete(containerId);
+		}
+
+		const prefix = `${containerId}/`;
+		for (const key of [...this.readClients.keys()].filter((k) => k.startsWith(prefix))) {
+			const readClient = this.readClients.get(key);
+			if (readClient) {
+				try {
+					readClient.release(true);
+				} catch (error) {
+					Container.get(Logger).error('pg release read client failed', { error });
+				}
+			}
+			this.readClients.delete(key);
+		}
+
+		this.hubMasters.delete(containerId);
+		for (const key of [...this.hubSlaves.keys()].filter((k) => k.startsWith(prefix))) {
+			this.hubSlaves.delete(key);
+		}
+	}
+
+	private ensureCleanupRegistered(containerId: string): void {
+		if (this.pendingReleases.has(containerId)) return;
+		this.pendingReleases.add(containerId);
+		try {
+			Container.getSystem(Request).addDefer(() => this.release(containerId));
+		} catch {
+			this.pendingReleases.delete(containerId);
 		}
 	}
 

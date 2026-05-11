@@ -9,8 +9,9 @@ import fastifyIp from 'fastify-ip';
 import psl from 'psl';
 import { IResult, UAParser } from 'ua-parser-js';
 
-import { Container, Registry } from '../di';
+import { Container, Context, Registry } from '../di';
 import { Logger } from '../logger';
+import { Request } from '../request';
 
 import { certExample, keyExample } from './consts';
 import { ForbiddenError, HttpTimeoutError } from './errors';
@@ -343,12 +344,19 @@ export class Server {
 
 			this.activeRequests++;
 
+			const ctx: Context = { requestId: req.id };
+
 			reply.raw.once('close', () => {
 				if (this.activeRequests > 0) this.activeRequests--;
-				Container.reset(req.id);
+				Registry.context.run(ctx, () => {
+					Container.getSystem(Request)
+						.executeDefers()
+						.catch((error) => Container.get(Logger).error('Request defers failed', { error }))
+						.finally(() => Container.reset(req.id));
+				});
 			});
 
-			Registry.context.run({ requestId: req.id }, () => done());
+			Registry.context.run(ctx, () => done());
 		});
 
 		Server.registerRoutes(server);
