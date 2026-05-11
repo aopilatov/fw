@@ -342,16 +342,13 @@ export class Server {
 			req.userAgent = UAParser(req.headers['user-agent']);
 
 			this.activeRequests++;
+			reply.raw.once('close', () => {
+				if (this.activeRequests > 0) this.activeRequests--;
+
+				Container.reset(req.id);
+			});
 
 			Registry.context.run({ requestId: req.id }, () => done());
-		});
-
-		server.addHook('onResponse', (req, reply, done) => {
-			if (!Server.isHooksRequired(req)) return done();
-
-			this.activeRequests--;
-			Container.reset(req.id);
-			done();
 		});
 
 		Server.registerRoutes(server);
