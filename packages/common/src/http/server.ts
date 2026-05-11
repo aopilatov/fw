@@ -306,60 +306,10 @@ export class Server {
 
 		server.get('/_/readiness', (req, res) => {
 			if (!this.isReady) {
-				return res.code(500).send('not ok');
+				return res.code(503).send('not ok');
 			}
 
 			return res.code(200).send('ok');
-		});
-
-		server.addHook('onListen', async () => {
-			this.isReady = true;
-		});
-
-		server.addHook('onRequest', (req, reply, done) => {
-			if (!Server.isHooksRequired(req)) return done();
-
-			let country = 'zz';
-			for (const headerName of this.customCountryHeaders) {
-				const raw = req.headers[headerName.toLowerCase()];
-				const value = Array.isArray(raw) ? raw[0] : raw;
-				if (value && value.trim()) {
-					country = value.trim();
-					break;
-				}
-			}
-			req.country = country.toLowerCase();
-
-			const originRaw = req.headers['origin'];
-			const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
-			if (originValue && originValue.trim()) {
-				req.referer = originValue.trim();
-			} else {
-				const refererRaw = req.headers['referer'];
-				const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
-				req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
-			}
-
-			req.userAgent = UAParser(req.headers['user-agent']);
-
-			this.activeRequests++;
-
-			const ctx: Context = {};
-
-			reply.raw.once('close', () => {
-				if (this.activeRequests > 0) this.activeRequests--;
-				Registry.runWithContext(req.id, ctx, () => {
-					Container.getSystem(Request)
-						.executeDefers()
-						.catch((error) => Container.get(Logger).error('Request defers failed', { error }))
-						.finally(() => {
-							Container.reset(req.id);
-							Registry.disposeContext(req.id);
-						});
-				});
-			});
-
-			Registry.runWithContext(req.id, ctx, () => done());
 		});
 
 		Server.registerRoutes(server);
@@ -394,22 +344,14 @@ export class Server {
 				url: route.route,
 				config: route.config,
 				handler: async (req: ServerRequest<never>, res: ServerResponse) => {
-					if (Server.onRequest) {
-						await Server.onRequest(req, res);
+					let answer: RouteReply | undefined;
+					if (Server.isHooksRequired(req)) {
+						answer = await this.executeRoute(route, req, res);
+					} else {
+						answer = await route.func(req, res);
 					}
 
-					if (route.guards?.length) {
-						for (const guard of route.guards) {
-							const result = await guard(req);
-							if (!result) throw new ForbiddenError('You are not allowed');
-						}
-					}
-
-					const answer = await route.func(req, res);
-
-					if (Server.onResponse) {
-						await Server.onResponse(req, res);
-					}
+					if (!answer) throw new Error('not ok');
 
 					if (answer.headers) res.headers(answer.headers);
 					if (answer.cookies) {
@@ -439,5 +381,61 @@ export class Server {
 				},
 			});
 		}
+	}
+
+	private static async hookOnRequest(req, reply): Promise<void> {
+		const ctx: Context = {};
+		await Registry.runWithContext(req.id, ctx, async () => done());
+	}
+
+	private static async executeRoute(route: Route, req: ServerRequest<never>, res: ServerResponse): Promise<RouteReply | undefined> {
+		let answer: RouteReply | undefined = undefined;
+
+		try {
+			this.activeRequests++;
+
+			let country = 'zz';
+			for (const headerName of this.customCountryHeaders) {
+				const raw = req.headers[headerName.toLowerCase()];
+				const value = Array.isArray(raw) ? raw[0] : raw;
+				if (value && value.trim()) {
+					country = value.trim();
+					break;
+				}
+			}
+			req.country = country.toLowerCase();
+
+			const originRaw = req.headers['origin'];
+			const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
+			if (originValue && originValue.trim()) {
+				req.referer = originValue.trim();
+			} else {
+				const refererRaw = req.headers['referer'];
+				const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
+				req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
+			}
+
+			req.userAgent = UAParser(req.headers['user-agent']);
+
+			if (Server.onRequest) {
+				await Server.onRequest(req, res);
+			}
+
+			if (route.guards?.length) {
+				for (const guard of route.guards) {
+					const result = await guard(req);
+					if (!result) throw new ForbiddenError('You are not allowed');
+				}
+			}
+
+			answer = await route.func(req, res);
+		} finally {
+			this.activeRequests--;
+			if (Server.onResponse) {
+				await Server.onResponse(req, res);
+			}
+		}
+
+		return answer;
 	}
 }
