@@ -387,44 +387,51 @@ export class Server {
 						await Server.onRequest(req, res);
 					}
 
-					if (route.guards?.length) {
-						for (const guard of route.guards) {
-							const result = await guard(req);
-							if (!result) throw new ForbiddenError('You are not allowed');
-						}
-					}
-
-					const answer = await route.func(req, res);
-
-					if (Server.onResponse) {
-						await Server.onResponse(req, res);
-					}
-
-					if (answer.headers) res.headers(answer.headers);
-					if (answer.cookies) {
-						let rootDomain: string | undefined = undefined;
-						if (answer.cookies?.domain) {
-							const parsedDomain = psl.parse(answer.cookies.domain);
-							if (parsedDomain?.['domain']) {
-								rootDomain = parsedDomain['domain'];
+					try {
+						if (route.guards?.length) {
+							for (const guard of route.guards) {
+								const result = await guard(req);
+								if (!result) throw new ForbiddenError('You are not allowed');
 							}
 						}
 
-						if (answer.cookies.value === 'delete') {
-							res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
-						} else {
-							res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
-								httpOnly: true,
-								secure: true,
-								path: '/',
-								domain: rootDomain ? `.${rootDomain}` : undefined,
-								maxAge: answer.cookies?.options?.ageInMs || 3600,
-								sameSite: 'none',
-							});
+						const answer = await route.func(req, res);
+
+						if (answer.headers) res.headers(answer.headers);
+
+						if (answer.cookies) {
+							let rootDomain: string | undefined = undefined;
+							if (answer.cookies?.domain) {
+								const parsedDomain = psl.parse(answer.cookies.domain);
+								if (parsedDomain?.['domain']) {
+									rootDomain = parsedDomain['domain'];
+								}
+							}
+
+							if (answer.cookies.value === 'delete') {
+								res.clearCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`);
+							} else {
+								res.setCookie(`${answer.cookies.name}-${answer.cookies?.domain || 'local'}`, answer.cookies.value, {
+									httpOnly: true,
+									secure: true,
+									path: '/',
+									domain: rootDomain ? `.${rootDomain}` : undefined,
+									maxAge: answer.cookies?.options?.ageInMs || 3600,
+									sameSite: 'none',
+								});
+							}
+						}
+
+						res.code(answer.statusCode).send(answer.body);
+					} finally {
+						if (Server.onResponse) {
+							try {
+								await Server.onResponse(req, res);
+							} catch (onResponseErr) {
+								Container.get(Logger).error('onResponse failed', { error: onResponseErr });
+							}
 						}
 					}
-
-					res.code(answer.statusCode).send(answer.body);
 				},
 			});
 		}
