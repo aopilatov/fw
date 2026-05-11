@@ -380,57 +380,60 @@ export class Server {
 	}
 
 	private static async executeRoute(route: Route, req: ServerRequest<never>, res: ServerResponse): Promise<RouteReply | undefined> {
+		let answer: RouteReply | undefined = undefined;
 		const ctxRequestId = req.id;
 		const ctx: Context = {};
 
-		const answer = await Registry.runWithContext(ctxRequestId, ctx, async () => {
-			try {
-				let country = 'zz';
-				for (const headerName of this.customCountryHeaders) {
-					const raw = req.headers[headerName.toLowerCase()];
-					const value = Array.isArray(raw) ? raw[0] : raw;
-					if (value && value.trim()) {
-						country = value.trim();
-						break;
+		try {
+			answer = await Registry.runWithContext(ctxRequestId, ctx, async () => {
+				try {
+					let country = 'zz';
+					for (const headerName of this.customCountryHeaders) {
+						const raw = req.headers[headerName.toLowerCase()];
+						const value = Array.isArray(raw) ? raw[0] : raw;
+						if (value && value.trim()) {
+							country = value.trim();
+							break;
+						}
 					}
-				}
-				req.country = country.toLowerCase();
+					req.country = country.toLowerCase();
 
-				const originRaw = req.headers['origin'];
-				const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
-				if (originValue && originValue.trim()) {
-					req.referer = originValue.trim();
-				} else {
-					const refererRaw = req.headers['referer'];
-					const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
-					req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
-				}
-
-				req.userAgent = UAParser(req.headers['user-agent']);
-
-				if (Server.onRequest) {
-					await Server.onRequest(req, res);
-				}
-
-				if (route.guards?.length) {
-					for (const guard of route.guards) {
-						const result = await guard(req);
-						if (!result) throw new ForbiddenError('You are not allowed');
+					const originRaw = req.headers['origin'];
+					const originValue = Array.isArray(originRaw) ? originRaw[0] : originRaw;
+					if (originValue && originValue.trim()) {
+						req.referer = originValue.trim();
+					} else {
+						const refererRaw = req.headers['referer'];
+						const refererValue = Array.isArray(refererRaw) ? refererRaw[0] : refererRaw;
+						req.referer = refererValue && refererValue.trim() ? refererValue.trim() : undefined;
 					}
+
+					req.userAgent = UAParser(req.headers['user-agent']);
+
+					if (Server.onRequest) {
+						await Server.onRequest(req, res);
+					}
+
+					if (route.guards?.length) {
+						for (const guard of route.guards) {
+							const result = await guard(req);
+							if (!result) throw new ForbiddenError('You are not allowed');
+						}
+					}
+
+					return await route.func(req, res);
+				} finally {
+					if (Server.onResponse) {
+						await Server.onResponse(req, res);
+					}
+
+					await Container.get(Request).executeDefers();
 				}
-
-				return await route.func(req, res);
-			} finally {
-				if (Server.onResponse) {
-					await Server.onResponse(req, res);
-				}
-
-				await Container.get(Request).executeDefers();
-			}
-		});
-
-		Registry.disposeContext(ctxRequestId);
-		Container.reset(ctxRequestId);
+			});
+		} finally {
+			Registry.disposeContext(ctxRequestId);
+			Container.reset(ctxRequestId);
+		}
 
 		return answer;
 	}
